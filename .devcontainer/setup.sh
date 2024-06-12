@@ -1,1 +1,1 @@
-cypher-shell -f import_data.cypher
+cypher-shell -f data_seed.cypher
