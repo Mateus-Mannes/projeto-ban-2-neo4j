@@ -21,34 +21,34 @@ CREATE (:Categoria {nome: 'Automotivo'});
 CREATE (:Categoria {nome: 'Beleza e Perfumaria'});
 
 MATCH (c:Categoria {nome: 'Livros'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: '1984', descricao: 'Clássico da literatura distópica.', preco: 39.90});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: '1984', descricao: 'Clássico da literatura distópica.', preco: 39.90});
 
 MATCH (c:Categoria {nome: 'Eletrodomésticos'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Geladeira Duplex', descricao: 'Geladeira espaçosa com freezer.', preco: 2100.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Geladeira Duplex', descricao: 'Geladeira espaçosa com freezer.', preco: 2100.00});
 
 MATCH (c:Categoria {nome: 'Informática'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Notebook Gamer', descricao: 'Alto desempenho para jogos.', preco: 5800.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Notebook Gamer', descricao: 'Alto desempenho para jogos.', preco: 5800.00});
 
 MATCH (c:Categoria {nome: 'Moda Masculina'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Camiseta Polo', descricao: 'Camiseta masculina casual.', preco: 89.90});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Camiseta Polo', descricao: 'Camiseta masculina casual.', preco: 89.90});
 
 MATCH (c:Categoria {nome: 'Moda Feminina'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Vestido Floral', descricao: 'Vestido feminino para verão.', preco: 120.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Vestido Floral', descricao: 'Vestido feminino para verão.', preco: 120.00});
 
 MATCH (c:Categoria {nome: 'Brinquedos'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Lego Star Wars', descricao: 'Conjunto de montar Star Wars.', preco: 299.90});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Lego Star Wars', descricao: 'Conjunto de montar Star Wars.', preco: 299.90});
 
 MATCH (c:Categoria {nome: 'Decoração'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Luminária de Mesa', descricao: 'Decoração moderna para interiores.', preco: 130.50});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Luminária de Mesa', descricao: 'Decoração moderna para interiores.', preco: 130.50});
 
 MATCH (c:Categoria {nome: 'Esportes'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Bicicleta de Montanha', descricao: 'Ideal para trilhas e terrenos irregulares.', preco: 890.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Bicicleta de Montanha', descricao: 'Ideal para trilhas e terrenos irregulares.', preco: 890.00});
 
 MATCH (c:Categoria {nome: 'Automotivo'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Pneu Aro 15', descricao: 'Pneus de alta durabilidade.', preco: 400.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Pneu Aro 15', descricao: 'Pneus de alta durabilidade.', preco: 400.00});
 
 MATCH (c:Categoria {nome: 'Beleza e Perfumaria'})
-CREATE (c)-[:CONTAINS]->(:CatalogoProduto {nome: 'Perfume Importado', descricao: 'Fragrância feminina, 50ml.', preco: 250.00});
+CREATE (c)-[:CONTAINS]->(:catalogo_produto {nome: 'Perfume Importado', descricao: 'Fragrância feminina, 50ml.', preco: 250.00});
 
 
 MATCH (e:Endereco {cidade: 'Belo Horizonte', rua: 'Rua da Bahia', numero: '1200'})
@@ -142,34 +142,34 @@ MATCH (f:Fornecedor {cnpj: '55667788000144'})
 CREATE (f)<-[:FORNECE]-(c:Compra {nfe: 'NFE890123', data: '2023-09-05'});
 
 
-MATCH (cp:CatalogoProduto {nome: '1984'}), (c:Compra {nfe: 'NFE456789'})
+MATCH (cp:catalogo_produto {nome: '1984'}), (c:Compra {nfe: 'NFE456789'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-01', data_validade: '2024-08-01', valor_compra: 2150.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Geladeira Duplex'}), (c:Compra {nfe: 'NFE456789'})
+MATCH (cp:catalogo_produto {nome: 'Geladeira Duplex'}), (c:Compra {nfe: 'NFE456789'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-05', valor_compra: 4250.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Notebook Gamer'}), (c:Compra {nfe: 'NFE567890'})
+MATCH (cp:catalogo_produto {nome: 'Notebook Gamer'}), (c:Compra {nfe: 'NFE567890'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-10', data_validade: '2024-08-10', valor_compra: 11600.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Camiseta Polo'}), (c:Compra {nfe: 'NFE567890'})
+MATCH (cp:catalogo_produto {nome: 'Camiseta Polo'}), (c:Compra {nfe: 'NFE567890'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-07-15', valor_compra: 100.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Vestido Floral'}), (c:Compra {nfe: 'NFE678901'})
+MATCH (cp:catalogo_produto {nome: 'Vestido Floral'}), (c:Compra {nfe: 'NFE678901'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-20', data_validade: '2024-08-20', valor_compra: 1700.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: '1984'}), (c:Compra {nfe: 'NFE789012'})
+MATCH (cp:catalogo_produto {nome: '1984'}), (c:Compra {nfe: 'NFE789012'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-25', data_validade: '2024-08-25', valor_compra: 2150.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Geladeira Duplex'}), (c:Compra {nfe: 'NFE789012'})
+MATCH (cp:catalogo_produto {nome: 'Geladeira Duplex'}), (c:Compra {nfe: 'NFE789012'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-30', valor_compra: 4250.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Notebook Gamer'}), (c:Compra {nfe: 'NFE890123'})
+MATCH (cp:catalogo_produto {nome: 'Notebook Gamer'}), (c:Compra {nfe: 'NFE890123'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-09-01', data_validade: '2024-09-01', valor_compra: 11600.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Camiseta Polo'}), (c:Compra {nfe: 'NFE890123'})
+MATCH (cp:catalogo_produto {nome: 'Camiseta Polo'}), (c:Compra {nfe: 'NFE890123'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-07-10', valor_compra: 100.00})-[:PARTE_DE]->(c);
 
-MATCH (cp:CatalogoProduto {nome: 'Vestido Floral'}), (c:Compra {nfe: 'NFE678901'})
+MATCH (cp:catalogo_produto {nome: 'Vestido Floral'}), (c:Compra {nfe: 'NFE678901'})
 CREATE (cp)<-[:CATEGORIZADO_COM]-(p:Produto {data_fabricacao: '2023-08-15', data_validade: '2024-08-15', valor_compra: 1700.00})-[:PARTE_DE]->(c);
 
 

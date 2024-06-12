@@ -8,9 +8,6 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Produto")]
 public class Produto  : QueryableEntity
 {
-    [Column("id")]
-    [Display(Name = "Id")]
-    public override int Id { get; set; }
     [Column("catalogo_produto_id")]
     [Display(Name = "Catalogo Produto Id")]
     [Fk<CatalogoProduto>]

@@ -7,9 +7,6 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Endereço")]
 public class Endereco  : QueryableEntity
 {
-    [Column("id")]
-    [Display(Name = "Id")]
-    public override int Id { get; set; }
     [Column("cidade")]
     [Display(Name = "Cidade")]
     public string Cidade { get; set; } = string.Empty;

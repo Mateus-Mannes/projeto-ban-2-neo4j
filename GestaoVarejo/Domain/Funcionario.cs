@@ -7,9 +7,6 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Funcionário")]
 public class Funcionario : QueryableEntity
 {
-    [Column("id")]
-    [Display(Name = "Id")]
-    public override int Id { get; set; }
     [Column("cpf")]
     [Display(Name = "CPF")]
     public string Cpf { get; set; } = string.Empty;

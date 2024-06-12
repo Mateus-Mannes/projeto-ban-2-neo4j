@@ -7,22 +7,22 @@ namespace GestaoVarejo;
 
 public abstract class QueryableEntity : IEntity
 {
-    public abstract int Id { get; set; }
 
     public static string TableName<T>() where T : QueryableEntity 
         => typeof(T).GetCustomAttribute<TableAttribute>()!.Name;
 
-    public void FillValues(string[] values)
+    public void FillValues(IReadOnlyDictionary<string, object> values)
     {
-         var properties = this.GetType().GetProperties();
+        var properties = this.GetType().GetProperties();
         for (int i = 0; i < properties.Length; i++)
         {
-            if (i >= values.Length)
+            if (i >= values.Count)
                 break;
 
             var property = properties[i];
             var propertyType = property.PropertyType;
-            string stringValue = values[i];
+            var propertyName = property.GetCustomAttribute<ColumnAttribute>()!.Name!;
+            string stringValue = values[propertyName]?.ToString() ?? string.Empty;
             object value = null!;
 
             if (Nullable.GetUnderlyingType(propertyType) != null && !string.IsNullOrEmpty(stringValue))

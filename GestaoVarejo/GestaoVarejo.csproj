@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />
-    <PackageReference Include="Npgsql" Version="8.0.2" />
+    <PackageReference Include="Neo4j.Driver" Version="5.21.0" />
   </ItemGroup>
 
 </Project>

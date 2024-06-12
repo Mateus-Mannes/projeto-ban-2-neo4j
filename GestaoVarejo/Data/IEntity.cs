@@ -2,6 +2,5 @@
 
 public interface IEntity
 {
-    public int Id { get; set; }
-    public void FillValues(string[] values);
+        public void FillValues(IReadOnlyDictionary<string, object> values);
 }

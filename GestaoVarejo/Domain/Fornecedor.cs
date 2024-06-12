@@ -7,9 +7,6 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Fornecedor")]
 public class Fornecedor : QueryableEntity
 {
-    [Column("id")]
-    [Display(Name = "Id")]
-    public override int Id { get; set; }
     [Column("nome")]
     [Display(Name = "Nome")]
     public string Cnpj { get; set; } = string.Empty;
