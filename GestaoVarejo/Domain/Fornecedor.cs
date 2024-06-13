@@ -7,8 +7,8 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Fornecedor")]
 public class Fornecedor : QueryableEntity
 {
-    [Column("nome")]
-    [Display(Name = "Nome")]
+    [Column("cnpj")]
+    [Display(Name = "Cnpj")]
     public string Cnpj { get; set; } = string.Empty;
     [Column("email")]
     [Display(Name = "Email")]
@@ -16,8 +16,4 @@ public class Fornecedor : QueryableEntity
     [Column("telefone")]
     [Display(Name = "Telefone")]
     public string Telefone { get; set; } = string.Empty;
-    [Column("endereco_id")]
-    [Display(Name = "Endereço Id")]
-    [Fk<Endereco>]
-    public int EnderecoId { get; set; }
 }

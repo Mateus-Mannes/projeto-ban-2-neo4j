@@ -16,12 +16,4 @@ public class Venda : QueryableEntity
     [Column("valor")]
     [Display(Name = "Valor")]
     public decimal Valor { get; set; }
-    [Column("cliente_id")]
-    [Fk<Cliente>]
-    [Display(Name = "Cliente Id")]
-    public int ClienteId { get; set; }
-    [Column("funcionario_id")]
-    [Display(Name = "Funcionário Id")]
-    [Fk<Funcionario>]
-    public int FuncionarioId { get; set; }
 }

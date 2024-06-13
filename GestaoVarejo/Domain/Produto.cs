@@ -8,10 +8,6 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Produto")]
 public class Produto  : QueryableEntity
 {
-    [Column("catalogo_produto_id")]
-    [Display(Name = "Catalogo Produto Id")]
-    [Fk<CatalogoProduto>]
-    public int CatalogoProdutoId { get; set; } 
     [Column("data_fabricacao")]
     [Display(Name = "Data Fabricação")]
     public DateTime DataFabricacao { get; set; }
@@ -24,12 +20,4 @@ public class Produto  : QueryableEntity
     [Column("valor_compra")]
     [Display(Name = "Valor Compra")]
     public decimal ValorUnitarioCompra { get; set; }
-    [Column("compra_id")]
-    [Display(Name = "Compra Id")]
-    [Fk<Compra>]
-    public int CompraId { get; set; } 
-    [Column("venda_id")]
-    [Display(Name = "Venda Id")]
-    [Fk<Venda>]
-    public int? VendaId { get; set; }
 }

@@ -13,8 +13,4 @@ public class Compra : QueryableEntity
     [Column("data")]
     [Display(Name = "Data")]
     public DateTime Data { get; set; } = DateTime.Now;
-    [Column("fornecedor_id")]
-    [Display(Name = "Fornecedor Id")]
-    [Fk<Fornecedor>]
-    public int FornecedorId { get; set; }
 }

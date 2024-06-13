@@ -22,8 +22,4 @@ public class Cliente : QueryableEntity
     [Column("email")]
     [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
-    [Column("endereco_id")]
-    [Display(Name = "Endereço Id")]
-    [Fk<Endereco>]
-    public int EnderecoId { get; set; }
 }

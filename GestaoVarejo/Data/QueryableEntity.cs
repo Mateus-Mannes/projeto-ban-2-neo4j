@@ -22,7 +22,8 @@ public abstract class QueryableEntity : IEntity
             var property = properties[i];
             var propertyType = property.PropertyType;
             var propertyName = property.GetCustomAttribute<ColumnAttribute>()!.Name!;
-            string stringValue = values[propertyName]?.ToString() ?? string.Empty;
+            string stringValue = null!;
+            if(values.ContainsKey(propertyName)) stringValue = values[propertyName].ToString()!;
             object value = null!;
 
             if (Nullable.GetUnderlyingType(propertyType) != null && !string.IsNullOrEmpty(stringValue))
