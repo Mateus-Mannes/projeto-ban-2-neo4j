@@ -1,21 +1,16 @@
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using Dapper;
-using GestaoVarejo.Domain;
+using Neo4j.Driver;
 
 namespace GestaoVarejo;
 
 public static class ConsoleHelper 
 {
-    public static void PrintEntityData<T>(Repository repository, string nomeEntidade, int? id = null) where T : QueryableEntity
+    public static void PrintEntityData<T>(IAsyncSession session, string nomeEntidade) where T : IQueryableEntity<T>
     {
-        var items = repository.GetAll<T>();
-        if(id is null )Console.WriteLine($"{nomeEntidade}'s:");
-        else Console.WriteLine($"{nomeEntidade} (id = {id}):");
+        var items = T.GetAll(session);
+        Console.WriteLine($"{nomeEntidade}'s:");
         foreach (var item in items)
         {
-            if(id is null)
-                Console.WriteLine(item.ToDisplayString());
+            Console.WriteLine(item.ToString());
         }
     }
 

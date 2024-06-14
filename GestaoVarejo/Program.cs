@@ -8,15 +8,15 @@ Console.WriteLine("Iniciando sistema ...");
 var driver = GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.None);
 var session = driver.AsyncSession();
 
-var repository = new Repository(session);
-//var reportService = new ReportService(session);
-
 var entityTypes = Assembly.GetExecutingAssembly().GetTypes()
-    .Where(t => t.IsSubclassOf(typeof(QueryableEntity)) && !t.IsAbstract);
+    .Where(t => t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryableEntity<>)));
 
 var displayNames = new List<string>(); 
-foreach (var type in entityTypes) 
-    displayNames.Add(type.GetCustomAttribute<DisplayAttribute>()?.Name ?? type.Name);
+foreach (var type in entityTypes)
+{
+    if(type.GetCustomAttribute<DisplayAttribute>() != null)
+        displayNames.Add(type.GetCustomAttribute<DisplayAttribute>()?.Name ?? type.Name);
+} 
 
 while (true)
 {
@@ -35,7 +35,7 @@ while (true)
     switch (escolha)
     {
         case "1":
-            ConsultarEntidade(repository);
+            ConsultarEntidade();
             break;
         // case "2":
         //     CriarRegistroEntidade(repository);
@@ -92,9 +92,8 @@ while (true)
 //     }
 // }
 
-void ConsultarEntidade(Repository repository)
+void ConsultarEntidade()
 {
-    
     Console.WriteLine("\nSelecione uma entidade para ler:");
 
     int index = 1;
@@ -110,7 +109,7 @@ void ConsultarEntidade(Repository repository)
         var selectedType = entityTypes.ElementAt(consulta - 1);
         var method = typeof(ConsoleHelper).GetMethod(nameof(ConsoleHelper.PrintEntityData))!
             .MakeGenericMethod(new Type[] { selectedType });
-        method.Invoke(null, new object[] { repository, displayNames[consulta - 1], null!});
+        method.Invoke(null, new object[] { session, displayNames[consulta - 1] });
     }
     else
     {
