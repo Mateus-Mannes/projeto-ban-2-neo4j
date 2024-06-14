@@ -98,4 +98,9 @@ public class Produto : IQueryableEntity<Produto>
 
         return produtos;
     }
+
+    public static void Create(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -75,5 +75,67 @@ public class Endereco  : IQueryableEntity<Endereco>
         return $"Endereço: {Rua}, Nº {Numero}, Bairro: {Bairro}, Cidade: {Cidade}, Estado: {Estado}";
     }
 
+    public static void Create(IAsyncSession session)
+    {
+        Console.WriteLine("Digite a cidade do endereço (obrigatório)*:");
+        var cidade = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(cidade))
+        {
+            Console.WriteLine("A cidade é obrigatória e não pode ser vazia.");
+            return;
+        }
+
+        Console.WriteLine("Digite o bairro do endereço (obrigatório)*:");
+        var bairro = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(bairro))
+        {
+            Console.WriteLine("O bairro é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite a rua do endereço (obrigatório)*:");
+        var rua = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(rua))
+        {
+            Console.WriteLine("A rua é obrigatória e não pode ser vazia.");
+            return;
+        }
+
+        Console.WriteLine("Digite o número do endereço (obrigatório)*:");
+        var numero = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(numero))
+        {
+            Console.WriteLine("O número é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite o estado do endereço (obrigatório)*:");
+        var estado = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(estado))
+        {
+            Console.WriteLine("O estado é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        var query = @"
+            CREATE (e:endereco {cidade: $cidade, bairro: $bairro, rua: $rua, numero: $numero, estado: $estado})
+            RETURN e";
+
+        // Executar a criação do endereço e retornar o resultado
+        var result = session.ExecuteWriteAsync(async tx =>
+        {
+            var cursor = await tx.RunAsync(query, new { cidade, bairro, rua, numero, estado });
+            return await cursor.SingleAsync();
+        }).Result;
+
+        var createdNode = result["e"].As<INode>();
+        Console.WriteLine($"Endereço criado com sucesso: {createdNode["cidade"].As<string>()}, {createdNode["bairro"].As<string>()}, {createdNode["rua"].As<string>()}, {createdNode["numero"].As<string>()}, {createdNode["estado"].As<string>()}");
+    }
+
 
 }

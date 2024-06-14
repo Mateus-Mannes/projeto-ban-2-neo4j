@@ -75,4 +75,9 @@ public class Venda : IQueryableEntity<Venda>
 
         return vendas;
     }
+
+    public static void Create(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

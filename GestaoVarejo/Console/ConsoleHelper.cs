@@ -14,6 +14,11 @@ public static class ConsoleHelper
         }
     }
 
+    public static void CreateEntity<T>(IAsyncSession session) where T : IQueryableEntity<T>
+    {
+        T.Create(session);
+    }
+
     // public static void CreateUpdateEntity<T>(Repository repository, string nomeEntidade, int? id = null, int? idCompra = null) where T :QueryableEntity
     // {
     //     var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();

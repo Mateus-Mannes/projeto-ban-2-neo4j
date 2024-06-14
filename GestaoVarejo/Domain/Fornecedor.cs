@@ -22,7 +22,7 @@ public class Fornecedor : IQueryableEntity<Fornecedor>
 
     public override string ToString()
     {
-        return $"CNPJ: {Cnpj}, Email: {Email}, Telefone: {Telefone}";
+        return $"CNPJ: {Cnpj}, Email: {Email}, Telefone: {Telefone}, Rua: {Endereco.Rua}";
     }
 
     public void FillValues(IReadOnlyDictionary<string, object> values)
@@ -67,4 +67,75 @@ public class Fornecedor : IQueryableEntity<Fornecedor>
 
         return fornecedores;
     }
+
+   public static void Create(IAsyncSession session)
+    {
+        Console.WriteLine("Digite o CNPJ do fornecedor (obrigatório)*:");
+        var cnpj = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(cnpj))
+        {
+            Console.WriteLine("O CNPJ é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite o email do fornecedor (obrigatório)*:");
+        var email = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            Console.WriteLine("O email é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite o telefone do fornecedor:");
+        var telefone = Console.ReadLine();
+
+        // Selecionar um endereço existente para o fornecedor
+        Console.WriteLine("Escolha um endereço para o fornecedor:");
+        var enderecos = Endereco.GetAll(session);
+        if (enderecos.Count == 0)
+        {
+            Console.WriteLine("Não há endereços disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < enderecos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {enderecos[i].ToString()}");
+        }
+
+        Console.WriteLine("Selecione o número do endereço:");
+        if (!int.TryParse(Console.ReadLine(), out int enderecoIndex) || enderecoIndex < 1 || enderecoIndex > enderecos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var enderecoEscolhido = enderecos[enderecoIndex - 1];
+
+        var query = @"
+            MATCH (e:endereco {cidade: $cidade, bairro: $bairro, rua: $rua, numero: $numero, estado: $estado})
+            CREATE (f:fornecedor {cnpj: $cnpj, email: $email, telefone: $telefone})-[:LOCALIZADO_EM]->(e)
+            RETURN f";
+
+        var result = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(query, new
+            {
+                cnpj,
+                email,
+                telefone,
+                cidade = enderecoEscolhido.Cidade,
+                bairro = enderecoEscolhido.Bairro,
+                rua = enderecoEscolhido.Rua,
+                numero = enderecoEscolhido.Numero,
+                estado = enderecoEscolhido.Estado
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var createdNode = result["f"].As<INode>();
+        Console.WriteLine($"Fornecedor criado com sucesso: CNPJ: {createdNode["cnpj"].As<string>()}, Email: {createdNode["email"].As<string>()}");
+    }
+
 }

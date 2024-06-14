@@ -28,7 +28,7 @@ public class Funcionario : IQueryableEntity<Funcionario>
 
     public override string ToString()
     {
-        return $"Funcionário: {Nome} {UltimoNome}, CPF: {Cpf}, Salário: {Salario}, Email: {Email}";
+        return $"Funcionário: {Nome} {UltimoNome}, CPF: {Cpf}, Salário: {Salario}, Email: {Email}, Rua: {Endereco.Rua}";
     }
 
     public void FillValues(IReadOnlyDictionary<string, object> values)
@@ -81,4 +81,88 @@ public class Funcionario : IQueryableEntity<Funcionario>
 
         return funcionarios;
     }
+
+    public static void Create(IAsyncSession session)
+    {
+        Console.WriteLine("Digite o CPF do funcionário (obrigatório)*:");
+        var cpf = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(cpf))
+        {
+            Console.WriteLine("O CPF é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite o nome do funcionário (obrigatório)*:");
+        var nome = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("O nome é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine("Digite o último nome do funcionário:");
+        var ultimoNome = Console.ReadLine();
+
+        Console.WriteLine("Digite o salário do funcionário (obrigatório)*:");
+        if (!decimal.TryParse(Console.ReadLine(), out decimal salario) || salario <= 0)
+        {
+            Console.WriteLine("Salário inválido. Por favor, insira um número positivo.");
+            return;
+        }
+
+        Console.WriteLine("Digite o email do funcionário:");
+        var email = Console.ReadLine();
+
+        // Selecionar um endereço existente para o funcionário
+        Console.WriteLine("Escolha um endereço para o funcionário:");
+        var enderecos = Endereco.GetAll(session);
+        if (enderecos.Count == 0)
+        {
+            Console.WriteLine("Não há endereços disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < enderecos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {enderecos[i].ToString()}");
+        }
+
+        Console.WriteLine("Selecione o número do endereço:");
+        if (!int.TryParse(Console.ReadLine(), out int enderecoIndex) || enderecoIndex < 1 || enderecoIndex > enderecos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var enderecoEscolhido = enderecos[enderecoIndex - 1];
+
+        var query = @"
+            MATCH (e:endereco {cidade: $cidade, bairro: $bairro, rua: $rua, numero: $numero, estado: $estado})
+            CREATE (f:funcionario {cpf: $cpf, nome: $nome, ultimo_nome: $ultimoNome, salario: $salario, email: $email})-[:TRABALHA_EM]->(e)
+            RETURN f";
+
+        var result = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(query, new
+            {
+                cpf,
+                nome,
+                ultimoNome,
+                salario,
+                email,
+                cidade = enderecoEscolhido.Cidade,
+                bairro = enderecoEscolhido.Bairro,
+                rua = enderecoEscolhido.Rua,
+                numero = enderecoEscolhido.Numero,
+                estado = enderecoEscolhido.Estado
+            });
+
+            return await result.SingleAsync();
+        }).Result;
+
+        var createdNode = result["f"].As<INode>();
+        Console.WriteLine($"Funcionário criado com sucesso: CPF: {createdNode["cpf"].As<string>()}, Nome: {createdNode["nome"].As<string>()}");
+    }
+
 }

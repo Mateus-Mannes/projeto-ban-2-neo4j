@@ -46,4 +46,32 @@ public class Categoria : IQueryableEntity<Categoria>
         return $"Categoria: {Nome}";
     }
 
+    public static void Create(IAsyncSession session)
+    {
+        var categoria = new Categoria();
+
+        Console.WriteLine("Digite o nome da categoria (obrigatório)*: ");
+        categoria.Nome = Console.ReadLine()!;
+        
+        if (string.IsNullOrWhiteSpace(categoria.Nome))
+        {
+            Console.WriteLine("O nome é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        var query = @"
+            CREATE (c:categoria {nome: $nome})
+            RETURN c";
+
+        var result = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(query, new { nome = categoria.Nome });
+            return await result.SingleAsync();
+        }).Result;
+
+        var createdNode = result["c"].As<INode>();
+
+        Console.WriteLine($"Categoria criada com sucesso: {createdNode["nome"].As<string>()}");
+    }
+
 }

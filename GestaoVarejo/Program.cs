@@ -37,9 +37,9 @@ while (true)
         case "1":
             ConsultarEntidade();
             break;
-        // case "2":
-        //     CriarRegistroEntidade(repository);
-        //     break;
+        case "2":
+            CriarRegistroEntidade();
+            break;
         // case "3":
         //     EditarEntidade(repository);
         //     break;
@@ -117,38 +117,37 @@ void ConsultarEntidade()
     }
 }
 
-// void CriarRegistroEntidade(Repository repository)
-// {
-//     Console.WriteLine("\nSelecione uma entidade para criar:");
+    void CriarRegistroEntidade()
+    {
+        Console.WriteLine("\nSelecione uma entidade para criar:");
 
-//     int index = 1;
-//     foreach (var displayName in displayNames) Console.WriteLine($"{index++}. {displayName}");
-//     Console.WriteLine($"{index}. Sair");
-//     Console.Write("Sua escolha: ");
+        int index = 1;
+        foreach (var displayName in displayNames) Console.WriteLine($"{index++}. {displayName}");
+        Console.WriteLine($"{index}. Sair");
+        Console.Write("Sua escolha: ");
 
-//     int.TryParse(Console.ReadLine(), out int consulta);
+        int.TryParse(Console.ReadLine(), out int consulta);
 
-//     if (consulta >= 1 && consulta < index)
-//     {
-//         Console.WriteLine();
-//         var selectedType = entityTypes.ElementAt(consulta - 1);
-//         var method = typeof(ConsoleHelper).GetMethod(nameof(ConsoleHelper.CreateUpdateEntity))!
-//             .MakeGenericMethod(new Type[] { selectedType });
-//         try 
-//         {
-//             method.Invoke(null, new object[] { repository, displayNames[consulta - 1], null!, null!});
-//             Console.WriteLine("Entidade criada com sucesso !");
-//         }
-//         catch
-//         {
-//             Console.WriteLine("Não foi possível criar a entidade. Verifique se os dados foram preenchidos corretamente.");
-//         }
-//     }
-//     else
-//     {
-//         Console.WriteLine("Opção inválida. Tente novamente.");
-//     }
-// }
+        if (consulta >= 1 && consulta < index)
+        {
+            Console.WriteLine();
+            var selectedType = entityTypes.ElementAt(consulta - 1);
+            var method = typeof(ConsoleHelper).GetMethod(nameof(ConsoleHelper.CreateEntity))!
+                .MakeGenericMethod(new Type[] { selectedType });
+            try 
+            {
+                method.Invoke(null, new object[] { session });
+            }
+            catch
+            {
+                Console.WriteLine("Não foi possível criar a entidade. Verifique se os dados foram preenchidos corretamente.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Opção inválida. Tente novamente.");
+        }
+    }
 
 // void DeletarEntidade(Repository repository)
 // {

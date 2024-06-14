@@ -61,4 +61,9 @@ public class Compra : IQueryableEntity<Compra>
 
         return compras;
     }
+
+    public static void Create(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }
