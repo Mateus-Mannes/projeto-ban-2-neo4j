@@ -18,6 +18,8 @@ public class Compra : IQueryableEntity<Compra>
 
     public Fornecedor Fornecedor { get; set; } = null!;
 
+    public INode Node { get; set; } = null!;
+
     public override string ToString()
     {
         return $"NFE: {Nfe}, Data: {Data.ToString("yyyy-MM-dd")}, Fornecedor Cnpj: {Fornecedor.Cnpj}";
@@ -49,7 +51,7 @@ public class Compra : IQueryableEntity<Compra>
             var compraNode = record["c"].As<INode>();
             var fornecedorNode = record["f"].As<INode>();
 
-            var compra = new Compra();
+            var compra = new Compra() { Node = compraNode };
             compra.FillValues(compraNode.Properties);
 
             var fornecedor = new Fornecedor();
@@ -64,6 +66,71 @@ public class Compra : IQueryableEntity<Compra>
 
     public static void Create(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("Digite a NFE da compra (obrigatório)*:");
+        var nfe = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(nfe))
+        {
+            Console.WriteLine("A NFE é obrigatória e não pode ser vazia.");
+            return;
+        }
+
+        Console.WriteLine("Digite a data da compra (formato YYYY-MM-DD) (obrigatório)*:");
+        if (!DateTime.TryParse(Console.ReadLine(), out DateTime data))
+        {
+            Console.WriteLine("Data inválida. Por favor, use o formato YYYY-MM-DD.");
+            return;
+        }
+
+        Console.WriteLine("Escolha um fornecedor para a compra:");
+        var fornecedores = Fornecedor.GetAll(session);
+        if (fornecedores.Count == 0)
+        {
+            Console.WriteLine("Não há fornecedores disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < fornecedores.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {fornecedores[i].Cnpj} - {fornecedores[i].Email}");
+        }
+
+        Console.WriteLine("Selecione o número do fornecedor (obrigatório)*:");
+        if (!int.TryParse(Console.ReadLine(), out int fornecedorIndex) || fornecedorIndex < 1 || fornecedorIndex > fornecedores.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var fornecedorEscolhido = fornecedores[fornecedorIndex - 1];
+
+        var createCompraQuery = @"
+            MATCH (f:fornecedor {cnpj: $cnpj})
+            CREATE (compra:compra {nfe: $nfe, data: $data})-[:FORNECE]->(f)
+            RETURN compra";
+
+        var compraNode = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(createCompraQuery, new
+            {
+                cnpj = fornecedorEscolhido.Cnpj,
+                nfe,
+                data
+            });
+            return (await result.SingleAsync())["compra"].As<INode>();
+        }).Result;
+
+        Console.WriteLine("Quantos produtos deseja adicionar à compra?");
+        if (int.TryParse(Console.ReadLine(), out int numberOfProducts) && numberOfProducts > 0)
+        {
+            for (int i = 0; i < numberOfProducts; i++)
+            {
+                Console.WriteLine($"Adicionando produto {i + 1} de {numberOfProducts}");
+                Produto.Create(session, compraNode);
+                Console.WriteLine();
+            }
+        }
+
+        Console.WriteLine($"Compra criada com sucesso: NFE: {nfe}, Data: {data.ToString("yyyy-MM-dd")}");
     }
+
 }

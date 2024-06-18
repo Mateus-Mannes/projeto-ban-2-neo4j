@@ -183,10 +183,10 @@ MATCH (cl:cliente {cpf: '44455566677'}), (f:funcionario {cpf: '77733344455'})
 CREATE (cl)-[:FEZ]->(:venda {nfe: 'VENDA67890', data: '2023-09-12', valor: 2900.00})-[:ATENDIDO_POR]->(f);
 
 MATCH (p:produto {data_fabricacao: '2023-08-01'}), (v:venda {nfe: 'VENDA45678'})
-CREATE (p)-[:PARTE_DE]->(v);
+CREATE (p)-[:VENDIDO]->(v);
 
 MATCH (p:produto {data_fabricacao: '2023-08-05'}), (v:venda {nfe: 'VENDA56789'})
-CREATE (p)-[:PARTE_DE]->(v);
+CREATE (p)-[:VENDIDO]->(v);
 
 MATCH (p:produto {data_fabricacao: '2023-08-10'}), (v:venda {nfe: 'VENDA67890'})
-CREATE (p)-[:PARTE_DE]->(v);
+CREATE (p)-[:VENDIDO]->(v);

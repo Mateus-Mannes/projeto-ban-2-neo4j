@@ -22,6 +22,8 @@ public class Venda : IQueryableEntity<Venda>
     public Cliente Cliente { get; set; } = null!;
     public Funcionario Funcionario { get; set; } = null!;
 
+    public INode Node { get; set; } = null!;
+
     public override string ToString()
     {
         return $"NFE: {Nfe}, Data: {Data.ToString("yyyy-MM-dd")}, Valor: {Valor}, Cliente Cpf: {Cliente.Cpf}, Funcionário Cpf: {Funcionario.Cpf}";
@@ -59,7 +61,7 @@ public class Venda : IQueryableEntity<Venda>
             var clienteNode = record["c"].As<INode>();
             var funcionarioNode = record["f"].As<INode>();
 
-            var venda = new Venda();
+            var venda = new Venda() { Node = vendaNode };
             venda.FillValues(vendaNode.Properties);
 
             var cliente = new Cliente();

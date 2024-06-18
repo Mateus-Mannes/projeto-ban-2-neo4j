@@ -62,7 +62,7 @@ public class Produto : IQueryableEntity<Produto>
         var query = @"
             MATCH (p:produto)-[:CATEGORIZADO_COM]->(cp:catalogo_produto),
                   (p)-[:PARTE_DE]->(compra)
-            OPTIONAL MATCH (p)-[:PARTE_DE]->(venda:venda)
+            OPTIONAL MATCH (p)-[:VENDIDO]->(venda:venda)
             RETURN p, cp, compra, venda";
 
         var produtos = new List<Produto>();
@@ -99,8 +99,140 @@ public class Produto : IQueryableEntity<Produto>
         return produtos;
     }
 
+    public static void Create(IAsyncSession session, INode? compraNode = null)
+    {
+        // Seleção do catálogo de produtos
+        Console.WriteLine("Escolha um catálogo de produtos para o produto:");
+        var catalogos = CatalogoProduto.GetAll(session);
+        if (catalogos.Count == 0)
+        {
+            Console.WriteLine("Não há catálogos de produtos disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < catalogos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {catalogos[i].Nome}");
+        }
+
+        Console.WriteLine("Selecione o número do catálogo:");
+        if (!int.TryParse(Console.ReadLine(), out int catalogoIndex) || catalogoIndex < 1 || catalogoIndex > catalogos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var catalogoEscolhido = catalogos[catalogoIndex - 1];
+
+        // Se nenhuma compra foi especificada, selecione uma
+        if (compraNode == null)
+        {
+            Console.WriteLine("Selecione uma compra existente para vincular ao produto:");
+            var compras = Compra.GetAll(session);
+            if (compras.Count == 0)
+            {
+                Console.WriteLine("Não há compras disponíveis.");
+                return;
+            }
+
+            for (int i = 0; i < compras.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. NFE: {compras[i].Nfe}, Data: {compras[i].Data.ToString("yyyy-MM-dd")}");
+            }
+
+            Console.WriteLine("Selecione o número da compra:");
+            if (!int.TryParse(Console.ReadLine(), out int compraIndex) || compraIndex < 1 || compraIndex > compras.Count)
+            {
+                Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+                return;
+            }
+            compraNode = compras[compraIndex - 1].Node;
+        }
+
+        // Detalhes do produto
+        Console.WriteLine("Digite a data de fabricação do produto (formato YYYY-MM-DD):");
+        if (!DateTime.TryParse(Console.ReadLine(), out DateTime dataFabricacao))
+        {
+            Console.WriteLine("Data de fabricação inválida. Por favor, use o formato YYYY-MM-DD.");
+            return;
+        }
+
+        Console.WriteLine("Digite a data de validade do produto (formato YYYY-MM-DD, opcional):");
+        DateTime? dataValidade = null;
+        var dataValidadeStr = Console.ReadLine();
+        if (!string.IsNullOrEmpty(dataValidadeStr) && DateTime.TryParse(dataValidadeStr, out DateTime validade))
+        {
+            dataValidade = validade;
+        }
+
+        Console.WriteLine("Digite o valor de compra do produto:");
+        if (!decimal.TryParse(Console.ReadLine(), out decimal valorCompra))
+        {
+            Console.WriteLine("Valor de compra inválido. Por favor, insira um valor decimal válido.");
+            return;
+        }
+
+        // Opção de vincular uma venda ao produto
+        Console.WriteLine("Deseja vincular uma venda ao produto? (sim/não)");
+        INode? vendaNode = null;
+        if (Console.ReadLine()!.Trim().ToLower() == "sim")
+        {
+            var vendas = Venda.GetAll(session);
+            if (vendas.Count == 0)
+            {
+                Console.WriteLine("Não há vendas disponíveis.");
+            }
+            else
+            {
+                for (int i = 0; i < vendas.Count; i++)
+                {
+                    Console.WriteLine($"{i + 1}. NFE: {vendas[i].Nfe}, Data: {vendas[i].Data.ToString("yyyy-MM-dd")}");
+                }
+                Console.WriteLine("Selecione o número da venda:");
+                if (int.TryParse(Console.ReadLine(), out int vendaIndex) && vendaIndex >= 1 && vendaIndex <= vendas.Count)
+                {
+                    vendaNode = vendas[vendaIndex - 1].Node;
+                }
+            }
+        }
+
+        var query = @"
+            MATCH (cp:catalogo_produto {nome: $catalogoNome}), (compra:compra {nfe: $compraNfe})
+            CREATE (p:produto {
+                data_fabricacao: $dataFabricacao,
+                data_validade: $dataValidade,
+                valor_compra: $valorCompra
+            })-[:CATEGORIZADO_COM]->(cp),
+            (p)-[:PARTE_DE]->(compra)";
+        
+        if (vendaNode != null)
+        {
+            query += @"
+            WITH p
+            MATCH (venda:venda {nfe: $vendaNfe})
+            CREATE (p)-[:VENDIDO]->(venda)";
+        }
+
+        query += " RETURN p";
+
+        var createdProduct = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(query, new
+            {
+                catalogoNome = catalogoEscolhido.Nome,
+                compraNfe = compraNode.Properties["nfe"].As<string>(),
+                dataFabricacao,
+                dataValidade,
+                valorCompra,
+                vendaNfe = vendaNode?.Properties["nfe"]?.As<string>()
+            });
+            return (await result.SingleAsync())["p"].As<INode>();
+        }).Result;
+
+        Console.WriteLine($"Produto criado com sucesso: Data de fabricação: {createdProduct["data_fabricacao"].As<DateTime>().ToString("yyyy-MM-dd")}");
+    }
+
     public static void Create(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        Create(session, null);
     }
 }
