@@ -199,7 +199,6 @@ public class Venda : IQueryableEntity<Venda>
         }
     }
 
-
     public static void Delete(IAsyncSession session)
     {
         // Listar todas as vendas disponíveis
@@ -228,8 +227,11 @@ public class Venda : IQueryableEntity<Venda>
         // Executar a query de deleção
         var query = @"
             MATCH (v:venda {nfe: $nfe})
-            DELETE v";
-            
+            OPTIONAL MATCH (v)<-[r1:FEZ]-(c:cliente)
+            OPTIONAL MATCH (v)-[r2:ATENDIDO_POR]->(f:funcionario)
+            OPTIONAL MATCH (v)<-[r3:VENDIDO]-(p:produto)
+            DELETE r1, r2, r3, v";
+
         session.ExecuteWriteAsync(async tx =>
         {
             await tx.RunAsync(query, new { nfe = vendaEscolhida.Nfe });
@@ -237,5 +239,6 @@ public class Venda : IQueryableEntity<Venda>
 
         Console.WriteLine($"Venda com NFE '{vendaEscolhida.Nfe}' deletada com sucesso.");
     }
+
 
 }

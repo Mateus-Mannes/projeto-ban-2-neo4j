@@ -164,6 +164,7 @@ public class Funcionario : IQueryableEntity<Funcionario>
         var createdNode = result["f"].As<INode>();
         Console.WriteLine($"Funcionário criado com sucesso: CPF: {createdNode["cpf"].As<string>()}, Nome: {createdNode["nome"].As<string>()}");
     }
+
     public static void Delete(IAsyncSession session)
     {
         // Listar todos os funcionários
@@ -189,17 +190,37 @@ public class Funcionario : IQueryableEntity<Funcionario>
 
         var funcionarioEscolhido = funcionarios[funcionarioIndex - 1];
 
-        // Construir e executar a query de deleção
-        var query = @"
-            MATCH (f:funcionario {cpf: $cpf})
+        // Verificar se o funcionário está envolvido em alguma venda
+        var checkVendaQuery = @"
+            MATCH (f:funcionario {cpf: $cpf})<-[:ATENDIDO_POR]-(v:venda)
+            RETURN COUNT(v) AS count";
+
+        var checkResult = session.ExecuteReadAsync(async tx =>
+        {
+            var result = await tx.RunAsync(checkVendaQuery, new { cpf = funcionarioEscolhido.Cpf });
+            return await result.SingleAsync();
+        }).Result;
+
+        if (checkResult["count"].As<int>() > 0)
+        {
+            Console.WriteLine("Não é possível deletar o funcionário porque ele está associado a vendas.");
+            return;
+        }
+
+        // Deletar o funcionário desfazendo a relação com o endereço
+        var deleteQuery = @"
+            MATCH (f:funcionario {cpf: $cpf})-[r:TRABALHA_EM]->(e:endereco)
+            DELETE r
+            WITH f
             DELETE f";
-            
+
         session.ExecuteWriteAsync(async tx =>
         {
-            await tx.RunAsync(query, new { cpf = funcionarioEscolhido.Cpf });
+            await tx.RunAsync(deleteQuery, new { cpf = funcionarioEscolhido.Cpf });
         }).Wait();
 
         Console.WriteLine($"Funcionário '{funcionarioEscolhido.Nome} {funcionarioEscolhido.UltimoNome}' deletado com sucesso.");
     }
+
 
 }

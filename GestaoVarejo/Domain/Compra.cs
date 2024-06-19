@@ -158,16 +158,45 @@ public class Compra : IQueryableEntity<Compra>
 
         var compraEscolhida = compras[compraIndex - 1];
 
-        // Construir e executar a query de deleção
-        var query = @"
-            MATCH (c:compra {nfe: $nfe}) DELETE c";
+        // Verificar se algum produto desta compra está vinculado a uma venda
+        var checkQuery = @"
+            MATCH (c:compra {nfe: $nfe})<-[:PARTE_DE]-(p:produto)
+            OPTIONAL MATCH (p)-[:VENDIDO]->(v:venda)
+            RETURN p, v";
+
+        var checkResult = session.RunAsync(checkQuery, new { nfe = compraEscolhida.Nfe }).Result;
+        var hasVendas = false;
+
+        checkResult.ForEachAsync(record =>
+        {
+            if (record["v"] != null)
+            {
+                hasVendas = true;
+            }
+        }).Wait();
+
+        if (hasVendas)
+        {
+            Console.WriteLine("Não é possível deletar a compra porque um ou mais produtos estão vinculados a vendas.");
+            return;
+        }
+
+        // Desvincular a compra do fornecedor e deletar a compra e todos os produtos relacionados
+        var deleteQuery = @"
+            MATCH (c:compra {nfe: $nfe})
+            OPTIONAL MATCH (c)<-[r:FORNECE]-(f:fornecedor)
+            OPTIONAL MATCH (c)<-[:PARTE_DE]-(p:produto)
+            WHERE NOT EXISTS((p)-[:VENDIDO]->(:venda))
+            DETACH DELETE c, p
+            DELETE r";
 
         session.ExecuteWriteAsync(async tx =>
         {
-            await tx.RunAsync(query, new { nfe = compraEscolhida.Nfe });
+            await tx.RunAsync(deleteQuery, new { nfe = compraEscolhida.Nfe });
         }).Wait();
 
-        Console.WriteLine($"Compra '{compraEscolhida.Nfe}' deletada com sucesso.");
+        Console.WriteLine($"Compra '{compraEscolhida.Nfe}' e todos os produtos relacionados foram deletados com sucesso.");
     }
+
 
 }
