@@ -133,5 +133,8 @@ public class CatalogoProduto : IQueryableEntity<CatalogoProduto>
         Console.WriteLine($"Produto criado com sucesso: {createdNode["nome"].As<string>()}");
     }
 
-
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

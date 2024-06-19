@@ -159,4 +159,8 @@ public class Cliente : IQueryableEntity<Cliente>
         Console.WriteLine("Cliente criado com sucesso!");
     }
 
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

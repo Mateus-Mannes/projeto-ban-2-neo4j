@@ -143,34 +143,34 @@ CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE890123', data: '2023-09-05'});
 
 
 MATCH (cp:catalogo_produto {nome: '1984'}), (c:compra {nfe: 'NFE456789'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-01', data_validade: '2024-08-01', data_entrega: '2023-07-15', valor_compra: 2150.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '1', data_fabricacao: '2023-08-01', data_validade: '2024-08-01', data_entrega: '2023-07-15', valor_compra: 2150.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Geladeira Duplex'}), (c:compra {nfe: 'NFE456789'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-05', data_entrega: '2023-07-15', valor_compra: 4250.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '2',data_fabricacao: '2023-08-05', data_entrega: '2023-07-15', valor_compra: 4250.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Notebook Gamer'}), (c:compra {nfe: 'NFE567890'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-10', data_validade: '2024-08-10', data_entrega: '2023-07-15', valor_compra: 11600.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '3',data_fabricacao: '2023-08-10', data_validade: '2024-08-10', data_entrega: '2023-07-15', valor_compra: 11600.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Camiseta Polo'}), (c:compra {nfe: 'NFE567890'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-07-15', data_entrega: '2023-07-15', valor_compra: 100.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '4',data_fabricacao: '2023-07-15', data_entrega: '2023-07-15', valor_compra: 100.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Vestido Floral'}), (c:compra {nfe: 'NFE678901'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-20', data_validade: '2024-08-20', data_entrega: '2023-07-15', valor_compra: 1700.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '5',data_fabricacao: '2023-08-20', data_validade: '2024-08-20', data_entrega: '2023-07-15', valor_compra: 1700.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: '1984'}), (c:compra {nfe: 'NFE789012'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-25', data_validade: '2024-08-25', data_entrega: '2023-07-15', valor_compra: 2150.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '6',data_fabricacao: '2023-08-25', data_validade: '2024-08-25', data_entrega: '2023-07-15', valor_compra: 2150.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Geladeira Duplex'}), (c:compra {nfe: 'NFE789012'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-30', data_entrega: '2023-07-15', valor_compra: 4250.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '7',data_fabricacao: '2023-08-30', data_entrega: '2023-07-15', valor_compra: 4250.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Notebook Gamer'}), (c:compra {nfe: 'NFE890123'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-09-01', data_validade: '2024-09-01', data_entrega: '2023-07-15', valor_compra: 11600.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '8',data_fabricacao: '2023-09-01', data_validade: '2024-09-01', data_entrega: '2023-07-15', valor_compra: 11600.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Camiseta Polo'}), (c:compra {nfe: 'NFE890123'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-07-10', data_entrega: '2023-07-15', valor_compra: 100.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '9',data_fabricacao: '2023-07-10', data_entrega: '2023-07-15', valor_compra: 100.00})-[:PARTE_DE]->(c);
 
 MATCH (cp:catalogo_produto {nome: 'Vestido Floral'}), (c:compra {nfe: 'NFE678901'})
-CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {data_fabricacao: '2023-08-15', data_validade: '2024-08-15', data_entrega: '2023-07-15', valor_compra: 1700.00})-[:PARTE_DE]->(c);
+CREATE (cp)<-[:CATEGORIZADO_COM]-(p:produto {codigo: '10',data_fabricacao: '2023-08-15', data_validade: '2024-08-15', data_entrega: '2023-07-15', valor_compra: 1700.00})-[:PARTE_DE]->(c);
 
 
 MATCH (cl:cliente {cpf: '22233344455'}), (f:funcionario {cpf: '99911122233'})

@@ -133,4 +133,8 @@ public class Compra : IQueryableEntity<Compra>
         Console.WriteLine($"Compra criada com sucesso: NFE: {nfe}, Data: {data.ToString("yyyy-MM-dd")}");
     }
 
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

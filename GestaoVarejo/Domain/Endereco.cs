@@ -137,5 +137,8 @@ public class Endereco  : IQueryableEntity<Endereco>
         Console.WriteLine($"Endereço criado com sucesso: {createdNode["cidade"].As<string>()}, {createdNode["bairro"].As<string>()}, {createdNode["rua"].As<string>()}, {createdNode["numero"].As<string>()}, {createdNode["estado"].As<string>()}");
     }
 
-
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

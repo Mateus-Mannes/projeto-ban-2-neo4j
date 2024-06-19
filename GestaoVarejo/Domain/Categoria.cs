@@ -74,4 +74,8 @@ public class Categoria : IQueryableEntity<Categoria>
         Console.WriteLine($"Categoria criada com sucesso: {createdNode["nome"].As<string>()}");
     }
 
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

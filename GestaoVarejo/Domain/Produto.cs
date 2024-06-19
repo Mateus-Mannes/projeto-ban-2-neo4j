@@ -9,6 +9,7 @@ namespace GestaoVarejo.Domain;
 [Display(Name = "Produto")]
 public class Produto : IQueryableEntity<Produto>
 {
+    public string Codigo { get; set; } = null!;
     [Column("data_fabricacao")]
     [Display(Name = "Data Fabricação")]
     public DateTime DataFabricacao { get; set; }
@@ -26,9 +27,12 @@ public class Produto : IQueryableEntity<Produto>
     public CatalogoProduto CatalogoProduto { get; set; } = null!;
     public Compra Compra { get; set; } = null!;
 
+    public INode Node { get; set; } = null!;
+
     public override string ToString()
     {
-        return $"Produto: {CatalogoProduto.Nome}, " +
+        return $"Codigo: {Codigo}, " +
+               $"Produto: {CatalogoProduto.Nome}, " +
                $"Fabricação: {DataFabricacao.ToString("yyyy-MM-dd")}, " +
                $"Validade: {(DataValidade.HasValue ? DataValidade.Value.ToString("yyyy-MM-dd") : "N/A")}, " +
                $"Entrega: {(DataEntrega.HasValue ? DataEntrega.Value.ToString("yyyy-MM-dd") : "N/A")}, " +
@@ -39,6 +43,10 @@ public class Produto : IQueryableEntity<Produto>
 
     public void FillValues(IReadOnlyDictionary<string, object> values)
     {
+        if (values.TryGetValue("codigo", out var codigo))
+        {
+            Codigo = codigo.ToString()!;
+        }
         if (values.TryGetValue("data_fabricacao", out var dataFabricacao))
         {
             DataFabricacao = DateTime.Parse(dataFabricacao.ToString()!);
@@ -75,7 +83,7 @@ public class Produto : IQueryableEntity<Produto>
             var compraNode = record["compra"].As<INode>();
             var vendaNode = record.ContainsKey("venda") ? record["venda"].As<INode>() : null;
 
-            var produto = new Produto();
+            var produto = new Produto() { Node = produtoNode };
             produto.FillValues(produtoNode.Properties);
 
             var catalogoProduto = new CatalogoProduto();
@@ -101,6 +109,15 @@ public class Produto : IQueryableEntity<Produto>
 
     public static void Create(IAsyncSession session, INode? compraNode = null)
     {
+        Console.WriteLine("Digite o código do produto (obrigatório)*:");
+        var codigo = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            Console.WriteLine("O código é obrigatório e não pode ser vazio.");
+            return;
+        }
+
         // Seleção do catálogo de produtos
         Console.WriteLine("Escolha um catálogo de produtos para o produto:");
         var catalogos = CatalogoProduto.GetAll(session);
@@ -198,6 +215,7 @@ public class Produto : IQueryableEntity<Produto>
         var query = @"
             MATCH (cp:catalogo_produto {nome: $catalogoNome}), (compra:compra {nfe: $compraNfe})
             CREATE (p:produto {
+                codigo: $codigo,
                 data_fabricacao: $dataFabricacao,
                 data_validade: $dataValidade,
                 valor_compra: $valorCompra
@@ -219,6 +237,7 @@ public class Produto : IQueryableEntity<Produto>
             var result = await tx.RunAsync(query, new
             {
                 catalogoNome = catalogoEscolhido.Nome,
+                codigo,
                 compraNfe = compraNode.Properties["nfe"].As<string>(),
                 dataFabricacao,
                 dataValidade,
@@ -234,5 +253,10 @@ public class Produto : IQueryableEntity<Produto>
     public static void Create(IAsyncSession session)
     {
         Create(session, null);
+    }
+
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
     }
 }

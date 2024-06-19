@@ -138,4 +138,8 @@ public class Fornecedor : IQueryableEntity<Fornecedor>
         Console.WriteLine($"Fornecedor criado com sucesso: CNPJ: {createdNode["cnpj"].As<string>()}, Email: {createdNode["email"].As<string>()}");
     }
 
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

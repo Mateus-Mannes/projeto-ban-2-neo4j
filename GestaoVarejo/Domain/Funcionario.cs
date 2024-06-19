@@ -165,4 +165,8 @@ public class Funcionario : IQueryableEntity<Funcionario>
         Console.WriteLine($"Funcionário criado com sucesso: CPF: {createdNode["cpf"].As<string>()}, Nome: {createdNode["nome"].As<string>()}");
     }
 
+    public static void Delete(IAsyncSession session)
+    {
+        throw new NotImplementedException();
+    }
 }

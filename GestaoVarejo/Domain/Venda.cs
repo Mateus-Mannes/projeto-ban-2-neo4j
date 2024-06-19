@@ -80,6 +80,128 @@ public class Venda : IQueryableEntity<Venda>
 
     public static void Create(IAsyncSession session)
     {
+        Console.WriteLine("Digite a NFE da venda (obrigatório)*:");
+        var nfe = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nfe))
+        {
+            Console.WriteLine("A NFE é obrigatória e não pode ser vazia.");
+            return;
+        }
+
+        Console.WriteLine("Digite a data da venda (formato YYYY-MM-DD):");
+        if (!DateTime.TryParse(Console.ReadLine(), out DateTime data))
+        {
+            Console.WriteLine("Data inválida. Por favor, use o formato YYYY-MM-DD.");
+            return;
+        }
+
+        Console.WriteLine("Digite o valor total da venda:");
+        if (!decimal.TryParse(Console.ReadLine(), out decimal valor))
+        {
+            Console.WriteLine("Valor inválido. Por favor, insira um valor decimal válido.");
+            return;
+        }
+
+        // Selecionar o cliente
+        Console.WriteLine("Selecione um cliente para a venda:");
+        var clientes = Cliente.GetAll(session);
+        if (clientes.Count == 0)
+        {
+            Console.WriteLine("Não há clientes disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < clientes.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. CPF: {clientes[i].Cpf}, Nome: {clientes[i].Nome} {clientes[i].UltimoNome}");
+        }
+
+        Console.WriteLine("Selecione o número do cliente:");
+        if (!int.TryParse(Console.ReadLine(), out int clienteIndex) || clienteIndex < 1 || clienteIndex > clientes.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var clienteEscolhido = clientes[clienteIndex - 1];
+
+        // Selecionar o funcionário
+        Console.WriteLine("Selecione um funcionário para registrar a venda:");
+        var funcionarios = Funcionario.GetAll(session);
+        if (funcionarios.Count == 0)
+        {
+            Console.WriteLine("Não há funcionários disponíveis.");
+            return;
+        }
+
+        for (int i = 0; i < funcionarios.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. CPF: {funcionarios[i].Cpf}, Nome: {funcionarios[i].Nome} {funcionarios[i].UltimoNome}");
+        }
+
+        Console.WriteLine("Selecione o número do funcionário:");
+        if (!int.TryParse(Console.ReadLine(), out int funcionarioIndex) || funcionarioIndex < 1 || funcionarioIndex > funcionarios.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número da lista.");
+            return;
+        }
+        var funcionarioEscolhido = funcionarios[funcionarioIndex - 1];
+
+        // Criar a venda
+        var query = @"
+            CREATE (v:venda {nfe: $nfe, data: $data, valor: $valor})
+            WITH v
+            MATCH (c:cliente {cpf: $clienteCpf}), (f:funcionario {cpf: $funcionarioCpf})
+            CREATE (c)-[:FEZ]->(v)-[:ATENDIDO_POR]->(f)
+            RETURN v";
+
+        var vendaNode = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(query, new
+            {
+                nfe,
+                data,
+                valor,
+                clienteCpf = clienteEscolhido.Cpf,
+                funcionarioCpf = funcionarioEscolhido.Cpf
+            });
+            return (await result.SingleAsync())["v"].As<INode>();
+        }).Result;
+
+        Console.WriteLine("Venda criada com sucesso. Deseja associar produtos a esta venda? (sim/não)");
+        if (Console.ReadLine()!.ToLower() == "sim")
+        {
+            var produtos = Produto.GetAll(session).Where(x => x.Venda == null).ToList();
+            if (produtos.Count == 0)
+            {
+                Console.WriteLine("Não há produtos disponíveis para vender.");
+                return;
+            }
+
+            for (int i = 0; i < produtos.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. Produto: {produtos[i].CatalogoProduto.Nome}, Codigo: {produtos[i].Codigo}, Fabricado: {produtos[i].DataFabricacao.ToString("yyyy-MM-dd")}");
+            }
+
+            Console.WriteLine("Digite os números dos produtos para associar à venda, separados por vírgula:");
+            var produtoIndexes = Console.ReadLine()!.Split(',').Select(int.Parse);
+            foreach (var idx in produtoIndexes)
+            {
+                if (idx >= 1 && idx <= produtos.Count)
+                {
+                    var produtoEscolhido = produtos[idx - 1];
+                    var linkQuery = @"
+                        MATCH (p:produto {codigo: $codigo}), (v:venda {nfe: $vendaNfe})
+                        CREATE (p)-[:VENDIDO]->(v)";
+                    session.ExecuteWriteAsync(tx => tx.RunAsync(linkQuery, new { codigo = produtoEscolhido.Codigo, vendaNfe = nfe }));
+                    Console.WriteLine($"Produto {produtoEscolhido.CatalogoProduto.Nome} adicionado à venda.");
+                }
+            }
+        }
+    }
+
+
+    public static void Delete(IAsyncSession session)
+    {
         throw new NotImplementedException();
     }
 }
