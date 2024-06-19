@@ -257,6 +257,40 @@ public class Produto : IQueryableEntity<Produto>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os produtos
+        var produtos = GetAll(session);
+        if (produtos.Count == 0)
+        {
+            Console.WriteLine("Não há produtos disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o produto que deseja deletar:");
+        for (int i = 0; i < produtos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {produtos[i]}"); // Mostra os detalhes de cada produto
+        }
+
+        Console.WriteLine("Digite o número do produto para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int produtoIndex) || produtoIndex < 1 || produtoIndex > produtos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var produtoEscolhido = produtos[produtoIndex - 1];
+
+        // Construir e executar a query de deleção
+        var query = @"
+            MATCH (p:produto {codigo: $codigo})
+            DELETE p";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new { codigo = produtoEscolhido.Codigo });
+        }).Wait();
+
+        Console.WriteLine($"Produto com código '{produtoEscolhido.Codigo}' deletado com sucesso.");
     }
+
 }

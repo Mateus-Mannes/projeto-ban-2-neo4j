@@ -161,6 +161,60 @@ public class Cliente : IQueryableEntity<Cliente>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os clientes
+        var clientes = GetAll(session);
+        if (clientes.Count == 0)
+        {
+            Console.WriteLine("Não há clientes disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o cliente que deseja deletar:");
+        for (int i = 0; i < clientes.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {clientes[i]}"); // Mostra os detalhes de cada cliente
+        }
+
+        Console.WriteLine("Digite o número do cliente para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int clienteIndex) || clienteIndex < 1 || clienteIndex > clientes.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var clienteEscolhido = clientes[clienteIndex - 1];
+
+        // Verificar se o cliente está envolvido em alguma venda
+        var checkVendaQuery = @"
+            MATCH (c:cliente {cpf: $cpf})-[:FEZ]->(v:venda)
+            RETURN COUNT(v) AS count";
+
+        var checkResult = session.ExecuteReadAsync(async tx =>
+        {
+            var result = await tx.RunAsync(checkVendaQuery, new { cpf = clienteEscolhido.Cpf });
+            return await result.SingleAsync();
+        }).Result;
+
+        if (checkResult["count"].As<int>() > 0)
+        {
+            Console.WriteLine("Não é possível deletar o cliente porque ele está associado a vendas.");
+            return;
+        }
+
+        // Deletar o cliente desfazendo a relação com o endereço
+        var deleteQuery = @"
+            MATCH (c:cliente {cpf: $cpf})-[r:RESIDE_EM]->(e:endereco)
+            DELETE r
+            WITH c
+            DELETE c";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(deleteQuery, new { cpf = clienteEscolhido.Cpf });
+        }).Wait();
+
+        Console.WriteLine($"Cliente '{clienteEscolhido.Nome} {clienteEscolhido.UltimoNome}' deletado com sucesso.");
     }
+
+
 }

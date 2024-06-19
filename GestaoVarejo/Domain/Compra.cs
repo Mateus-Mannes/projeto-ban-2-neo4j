@@ -40,7 +40,7 @@ public class Compra : IQueryableEntity<Compra>
     public static List<Compra> GetAll(IAsyncSession session)
     {
         var query = @"
-            MATCH (c:compra)-[:FORNECE]->(f:fornecedor)
+            MATCH (c:compra)<-[:FORNECE]-(f:fornecedor)
             RETURN c, f";
 
         var compras = new List<Compra>();
@@ -105,7 +105,7 @@ public class Compra : IQueryableEntity<Compra>
 
         var createCompraQuery = @"
             MATCH (f:fornecedor {cnpj: $cnpj})
-            CREATE (compra:compra {nfe: $nfe, data: $data})-[:FORNECE]->(f)
+            CREATE (compra:compra {nfe: $nfe, data: $data})<-[:FORNECE]-(f)
             RETURN compra";
 
         var compraNode = session.ExecuteWriteAsync(async tx =>
@@ -135,6 +135,39 @@ public class Compra : IQueryableEntity<Compra>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todas as compras
+        var compras = GetAll(session);
+        if (compras.Count == 0)
+        {
+            Console.WriteLine("Não há compras disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a compra que deseja deletar:");
+        for (int i = 0; i < compras.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {compras[i]}"); // Mostra os detalhes de cada compra
+        }
+
+        Console.WriteLine("Digite o número da compra para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int compraIndex) || compraIndex < 1 || compraIndex > compras.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var compraEscolhida = compras[compraIndex - 1];
+
+        // Construir e executar a query de deleção
+        var query = @"
+            MATCH (c:compra {nfe: $nfe}) DELETE c";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new { nfe = compraEscolhida.Nfe });
+        }).Wait();
+
+        Console.WriteLine($"Compra '{compraEscolhida.Nfe}' deletada com sucesso.");
     }
+
 }

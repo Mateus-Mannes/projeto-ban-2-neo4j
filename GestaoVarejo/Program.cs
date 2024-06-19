@@ -43,9 +43,9 @@ while (true)
         // case "3":
         //     EditarEntidade(repository);
         //     break;
-        // case "4":
-        //     DeletarEntidade(repository);
-        //     break;
+        case "4":
+            DeletarEntidade();
+            break;
         // case "5":
         //     ShowRelatoriosSubMenu(reportService);
         //     break;
@@ -149,61 +149,45 @@ void ConsultarEntidade()
         }
     }
 
-// void DeletarEntidade(Repository repository)
-// {
-//     Console.WriteLine("\nSelecione uma entidade para deletar:");
+void DeletarEntidade()
+{
+    Console.WriteLine("\nSelecione uma entidade para deletar:");
 
-//     int index = 1;
-//     foreach (var displayName in displayNames) Console.WriteLine($"{index++}. {displayName}");
-//     Console.WriteLine($"{index}. Sair");
-//     Console.Write("Sua escolha: ");
+    int index = 1;
+    foreach (var displayName in displayNames) Console.WriteLine($"{index++}. {displayName}");
+    Console.WriteLine($"{index}. Sair");
+    Console.Write("Sua escolha: ");
 
-//     int.TryParse(Console.ReadLine(), out int consulta);
+    int.TryParse(Console.ReadLine(), out int consulta);
 
-//     if (consulta >= 1 && consulta < index)
-//     {
-//         Console.WriteLine();
-//         var selectedType = entityTypes.ElementAt(consulta - 1);
-//         var method = typeof(ConsoleHelper).GetMethod(nameof(ConsoleHelper.PrintEntityData))!
-//             .MakeGenericMethod(new Type[] { selectedType });
-//         method.Invoke(null, new object[] { repository, displayNames[consulta - 1], null!});
-
-//         Console.Write("Escreva o Id do registro para deleção: ");
-//         if(!int.TryParse(Console.ReadLine(), out int id))
-//         {
-//             Console.WriteLine("Opção inválida. Tente novamente.");
-//             return;
-//         }
-
-//         method = typeof(Repository).GetMethod(nameof(Repository.Delete))!.MakeGenericMethod(new Type[] { selectedType });
-//         try 
-//         {
-//             method.Invoke(repository, new object[] { id });
-//             Console.WriteLine("Registro deletado com sucesso.");
-//         }
-//         catch (TargetInvocationException ex)
-//         {
-//             if (ex.InnerException is PostgresException && 
-//                 ex.InnerException.Message.Contains("violates foreign key constraint"))
-//             {
-//                 Console.WriteLine("Não foi possível deletar o registro pois ele está sendo referenciado por outra tabela.");
-//             }
-//             else
-//             {
-//                 throw;
-//             }
-//         }
-//         catch
-//         {
-//             Console.WriteLine("Não foi possível deletar a entidade. Verifique se o Id foi informado corretamente.");
-//         }
-
-//     }
-//     else
-//     {
-//         Console.WriteLine("Opção inválida. Tente novamente.");
-//     }
-// }
+    if (consulta >= 1 && consulta < index)
+    {
+        Console.WriteLine();
+        var selectedType = entityTypes.ElementAt(consulta - 1);
+        var method = typeof(ConsoleHelper).GetMethod(nameof(ConsoleHelper.DeleteEntity))!
+            .MakeGenericMethod(new Type[] { selectedType });
+        try 
+        {
+            method.Invoke(null, new object[] { session });
+        }
+        catch(Exception e)
+        {
+            if(e is TargetInvocationException && e.InnerException is AggregateException)
+            {
+                if(e.InnerException.Message.Contains("because it still has relationships"))
+                {
+                    Console.WriteLine("Não foi possível deletar a entidade. Existem relacionamentos ativos.");
+                    return;
+                }
+            }
+            Console.WriteLine("Não foi possível deletar a entidade. Verifique se os dados foram preenchidos corretamente.");
+        }
+    }
+    else
+    {
+        Console.WriteLine("Opção inválida. Tente novamente.");
+    }
+}
 
 // void EditarEntidade(Repository repository)
 // {

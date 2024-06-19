@@ -164,9 +164,42 @@ public class Funcionario : IQueryableEntity<Funcionario>
         var createdNode = result["f"].As<INode>();
         Console.WriteLine($"Funcionário criado com sucesso: CPF: {createdNode["cpf"].As<string>()}, Nome: {createdNode["nome"].As<string>()}");
     }
-
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os funcionários
+        var funcionarios = GetAll(session);
+        if (funcionarios.Count == 0)
+        {
+            Console.WriteLine("Não há funcionários disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o funcionário que deseja deletar:");
+        for (int i = 0; i < funcionarios.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {funcionarios[i]}"); // Mostra os detalhes de cada funcionário
+        }
+
+        Console.WriteLine("Digite o número do funcionário para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int funcionarioIndex) || funcionarioIndex < 1 || funcionarioIndex > funcionarios.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var funcionarioEscolhido = funcionarios[funcionarioIndex - 1];
+
+        // Construir e executar a query de deleção
+        var query = @"
+            MATCH (f:funcionario {cpf: $cpf})
+            DELETE f";
+            
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new { cpf = funcionarioEscolhido.Cpf });
+        }).Wait();
+
+        Console.WriteLine($"Funcionário '{funcionarioEscolhido.Nome} {funcionarioEscolhido.UltimoNome}' deletado com sucesso.");
     }
+
 }

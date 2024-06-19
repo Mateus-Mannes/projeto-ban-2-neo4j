@@ -135,6 +135,60 @@ public class CatalogoProduto : IQueryableEntity<CatalogoProduto>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os catálogos de produtos
+        var catalogoProdutos = GetAll(session);
+        if (catalogoProdutos.Count == 0)
+        {
+            Console.WriteLine("Não há catálogos de produtos para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o catálogo de produtos que deseja deletar:");
+        for (int i = 0; i < catalogoProdutos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {catalogoProdutos[i]}");
+        }
+
+        Console.WriteLine("Digite o número do catálogo de produtos para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int catalogoIndex) || catalogoIndex < 1 || catalogoIndex > catalogoProdutos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var catalogoEscolhido = catalogoProdutos[catalogoIndex - 1];
+
+        // Verificar se o catálogo de produtos está relacionado a algum produto
+        var checkRelationQuery = @"
+            MATCH (cp:catalogo_produto {nome: $nomeProduto})<-[:CATEGORIZADO_COM]-(p:produto)
+            RETURN COUNT(p) AS count";
+
+        var checkResult = session.ExecuteReadAsync(async tx =>
+        {
+            var result = await tx.RunAsync(checkRelationQuery, new { nomeProduto = catalogoEscolhido.Nome });
+            return await result.SingleAsync();
+        }).Result;
+
+        if (checkResult["count"].As<int>() > 0)
+        {
+            Console.WriteLine("Não é possível deletar o catálogo de produtos porque existem produtos associados.");
+            return;
+        }
+
+        // Deletar o catálogo de produtos desfazendo a relação com a categoria
+        var deleteQuery = @"
+            MATCH (cp:catalogo_produto {nome: $nomeProduto})<-[r:CONTAINS]-(c:categoria)
+            DELETE r
+            WITH cp
+            DELETE cp";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(deleteQuery, new { nomeProduto = catalogoEscolhido.Nome });
+        }).Wait();
+
+        Console.WriteLine($"Catálogo de produtos '{catalogoEscolhido.Nome}' deletado com sucesso.");
     }
+
+
 }

@@ -202,6 +202,40 @@ public class Venda : IQueryableEntity<Venda>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todas as vendas disponíveis
+        var vendas = GetAll(session);
+        if (vendas.Count == 0)
+        {
+            Console.WriteLine("Não há vendas disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a venda que deseja deletar:");
+        for (int i = 0; i < vendas.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. NFE: {vendas[i].Nfe}, Data: {vendas[i].Data.ToString("yyyy-MM-dd")}, Valor: {vendas[i].Valor}");
+        }
+
+        Console.WriteLine("Digite o número da venda para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int vendaIndex) || vendaIndex < 1 || vendaIndex > vendas.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var vendaEscolhida = vendas[vendaIndex - 1];
+
+        // Executar a query de deleção
+        var query = @"
+            MATCH (v:venda {nfe: $nfe})
+            DELETE v";
+            
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new { nfe = vendaEscolhida.Nfe });
+        }).Wait();
+
+        Console.WriteLine($"Venda com NFE '{vendaEscolhida.Nfe}' deletada com sucesso.");
     }
+
 }

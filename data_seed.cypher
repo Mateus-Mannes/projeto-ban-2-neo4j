@@ -127,19 +127,19 @@ CREATE (e)<-[:LOCALIZADO_EM]-(f:fornecedor {cnpj: '88990011122377', email: 'pedi
 
 
 MATCH (f:fornecedor {cnpj: '11223344000100'})
-CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE456789', data: '2023-09-01'});
+CREATE (f)-[:FORNECE]->(c:compra {nfe: 'NFE456789', data: '2023-09-01'});
 
 MATCH (f:fornecedor {cnpj: '22334455000111'})
-CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE567890', data: '2023-09-02'});
+CREATE (f)-[:FORNECE]->(c:compra {nfe: 'NFE567890', data: '2023-09-02'});
 
 MATCH (f:fornecedor {cnpj: '33445566000122'})
-CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE678901', data: '2023-09-03'});
+CREATE (f)-[:FORNECE]->(c:compra {nfe: 'NFE678901', data: '2023-09-03'});
 
 MATCH (f:fornecedor {cnpj: '44556677000133'})
-CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE789012', data: '2023-09-04'});
+CREATE (f)-[:FORNECE]->(c:compra {nfe: 'NFE789012', data: '2023-09-04'});
 
 MATCH (f:fornecedor {cnpj: '55667788000144'})
-CREATE (f)<-[:FORNECE]-(c:compra {nfe: 'NFE890123', data: '2023-09-05'});
+CREATE (f)-[:FORNECE]->(c:compra {nfe: 'NFE890123', data: '2023-09-05'});
 
 
 MATCH (cp:catalogo_produto {nome: '1984'}), (c:compra {nfe: 'NFE456789'})

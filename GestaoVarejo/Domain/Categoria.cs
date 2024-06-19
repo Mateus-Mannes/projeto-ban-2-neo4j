@@ -76,6 +76,39 @@ public class Categoria : IQueryableEntity<Categoria>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todas as categorias
+        var categorias = GetAll(session);
+        if (categorias.Count == 0)
+        {
+            Console.WriteLine("Não há categorias disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a categoria que deseja deletar:");
+        for (int i = 0; i < categorias.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {categorias[i]}"); // Mostra os detalhes de cada categoria
+        }
+
+        Console.WriteLine("Digite o número da categoria para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int categoriaIndex) || categoriaIndex < 1 || categoriaIndex > categorias.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var categoriaEscolhida = categorias[categoriaIndex - 1];
+
+        // Construir e executar a query de deleção
+        var query = @"
+            MATCH (c:categoria {nome: $nomeCategoria}) DELETE c";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new { nomeCategoria = categoriaEscolhida.Nome });
+        }).Wait();
+
+        Console.WriteLine($"Categoria '{categoriaEscolhida.Nome}' deletada com sucesso.");
     }
+
 }

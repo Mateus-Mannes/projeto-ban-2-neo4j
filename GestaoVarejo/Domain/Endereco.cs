@@ -139,6 +139,47 @@ public class Endereco  : IQueryableEntity<Endereco>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os endereços
+        var enderecos = GetAll(session);
+        if (enderecos.Count == 0)
+        {
+            Console.WriteLine("Não há endereços disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o endereço que deseja deletar:");
+        for (int i = 0; i < enderecos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {enderecos[i]}"); // Mostra os detalhes de cada endereço
+        }
+
+        Console.WriteLine("Digite o número do endereço para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int enderecoIndex) || enderecoIndex < 1 || enderecoIndex > enderecos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var enderecoEscolhido = enderecos[enderecoIndex - 1];
+
+        // Construir e executar a query de deleção
+        var query = @"
+            MATCH (e:endereco {cidade: $cidade, bairro: $bairro, rua: $rua, numero: $numero, estado: $estado})
+            DELETE e";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(query, new
+            {
+                cidade = enderecoEscolhido.Cidade,
+                bairro = enderecoEscolhido.Bairro,
+                rua = enderecoEscolhido.Rua,
+                numero = enderecoEscolhido.Numero,
+                estado = enderecoEscolhido.Estado
+            });
+        }).Wait();
+
+        Console.WriteLine($"Endereço '{enderecoEscolhido.Rua}, Nº {enderecoEscolhido.Numero}, Bairro: {enderecoEscolhido.Bairro}, Cidade: {enderecoEscolhido.Cidade}, Estado: {enderecoEscolhido.Estado}' deletado com sucesso.");
     }
+
 }

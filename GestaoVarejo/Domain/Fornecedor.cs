@@ -140,6 +140,60 @@ public class Fornecedor : IQueryableEntity<Fornecedor>
 
     public static void Delete(IAsyncSession session)
     {
-        throw new NotImplementedException();
+        // Listar todos os fornecedores
+        var fornecedores = GetAll(session);
+        if (fornecedores.Count == 0)
+        {
+            Console.WriteLine("Não há fornecedores disponíveis para deletar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o fornecedor que deseja deletar:");
+        for (int i = 0; i < fornecedores.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {fornecedores[i]}"); // Mostra os detalhes de cada fornecedor
+        }
+
+        Console.WriteLine("Digite o número do fornecedor para deletar:");
+        if (!int.TryParse(Console.ReadLine(), out int fornecedorIndex) || fornecedorIndex < 1 || fornecedorIndex > fornecedores.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var fornecedorEscolhido = fornecedores[fornecedorIndex - 1];
+
+        // Verificar se o fornecedor está envolvido em alguma compra
+        var checkCompraQuery = @"
+            MATCH (f:fornecedor {cnpj: $cnpj})-[:FORNECE]->(c:compra)
+            RETURN COUNT(c) AS count";
+
+        var checkResult = session.ExecuteReadAsync(async tx =>
+        {
+            var result = await tx.RunAsync(checkCompraQuery, new { cnpj = fornecedorEscolhido.Cnpj });
+            return await result.SingleAsync();
+        }).Result;
+
+        if (checkResult["count"].As<int>() > 0)
+        {
+            Console.WriteLine("Não é possível deletar o fornecedor porque ele está associado a compras.");
+            return;
+        }
+
+        // Deletar o fornecedor desfazendo a relação com o endereço
+        var deleteQuery = @"
+            MATCH (f:fornecedor {cnpj: $cnpj})-[r:LOCALIZADO_EM]->(e:endereco)
+            DELETE r
+            WITH f
+            DELETE f";
+
+        session.ExecuteWriteAsync(async tx =>
+        {
+            await tx.RunAsync(deleteQuery, new { cnpj = fornecedorEscolhido.Cnpj });
+        }).Wait();
+
+        Console.WriteLine($"Fornecedor '{fornecedorEscolhido.Cnpj}' deletado com sucesso.");
     }
+
+
 }
