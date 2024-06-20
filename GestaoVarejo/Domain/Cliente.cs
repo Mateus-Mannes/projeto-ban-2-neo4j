@@ -216,5 +216,92 @@ public class Cliente : IQueryableEntity<Cliente>
         Console.WriteLine($"Cliente '{clienteEscolhido.Nome} {clienteEscolhido.UltimoNome}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os clientes
+        var clientes = GetAll(session);
+        if (clientes.Count == 0)
+        {
+            Console.WriteLine("Não há clientes disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o cliente que deseja atualizar:");
+        for (int i = 0; i < clientes.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {clientes[i]}");
+        }
+
+        Console.WriteLine("Digite o número do cliente para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int clienteIndex) || clienteIndex < 1 || clienteIndex > clientes.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var clienteEscolhido = clientes[clienteIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"Nome atual: {clienteEscolhido.Nome}");
+        Console.WriteLine("Digite um novo nome ou pressione ENTER para manter o atual:");
+        var nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            nome = clienteEscolhido.Nome; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Último Nome atual: {clienteEscolhido.UltimoNome}");
+        Console.WriteLine("Digite um novo último nome ou pressione ENTER para manter o atual:");
+        var ultimoNome = Console.ReadLine();
+        ultimoNome = string.IsNullOrEmpty(ultimoNome) ? clienteEscolhido.UltimoNome : ultimoNome;
+
+        // Telefone e Email podem ser nulos
+        Console.WriteLine($"Telefone atual: {clienteEscolhido.Telefone}");
+        Console.WriteLine("Digite um novo telefone ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var telefone = Console.ReadLine();
+        if (string.IsNullOrEmpty(telefone))
+        {
+            telefone = clienteEscolhido.Telefone; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (telefone.Trim().ToLower() == "null")
+        {
+            telefone = null; // Permitir nulo se explicitamente indicado
+        }
+
+        Console.WriteLine($"Email atual: {clienteEscolhido.Email}");
+        Console.WriteLine("Digite um novo email ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var email = Console.ReadLine();
+        if (string.IsNullOrEmpty(email))
+        {
+            email = clienteEscolhido.Email; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (email.Trim().ToLower() == "null")
+        {
+            email = null; // Permitir nulo se explicitamente indicado
+        }
+
+        // Atualizar o cliente no banco de dados
+        var updateQuery = @"
+            MATCH (c:cliente {cpf: $cpf})
+            SET c.nome = $nome, c.ultimo_nome = $ultimoNome, c.telefone = $telefone, c.email = $email
+            RETURN c";
+
+        var updatedCliente = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                cpf = clienteEscolhido.Cpf,
+                nome,
+                ultimoNome,
+                telefone,
+                email
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedCliente["c"].As<INode>();
+        Console.WriteLine($"Cliente atualizado com sucesso: Nome: {updatedNode["nome"].As<string>()}, Email: {updatedNode["email"].As<string>()}");
+    }
+
 
 }

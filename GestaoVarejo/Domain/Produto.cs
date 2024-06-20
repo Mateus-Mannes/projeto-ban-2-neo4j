@@ -293,4 +293,148 @@ public class Produto : IQueryableEntity<Produto>
         Console.WriteLine($"Produto com código '{produtoEscolhido.Codigo}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os produtos
+        var produtos = GetAll(session);
+        if (produtos.Count == 0)
+        {
+            Console.WriteLine("Não há produtos disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o produto que deseja atualizar:");
+        for (int i = 0; i < produtos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {produtos[i]}");
+        }
+
+        Console.WriteLine("Digite o número do produto para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int produtoIndex) || produtoIndex < 1 || produtoIndex > produtos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var produtoEscolhido = produtos[produtoIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"Código atual: {produtoEscolhido.Codigo}");
+        Console.WriteLine("Digite um novo código ou pressione ENTER para manter o atual:");
+        var codigo = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            codigo = produtoEscolhido.Codigo; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Data de Fabricação atual: {produtoEscolhido.DataFabricacao.ToString("yyyy-MM-dd")}");
+        Console.WriteLine("Digite uma nova data de fabricação (formato YYYY-MM-DD) ou pressione ENTER para manter a atual:");
+        var dataFabricacaoStr = Console.ReadLine();
+        DateTime dataFabricacao;
+        if (string.IsNullOrWhiteSpace(dataFabricacaoStr))
+        {
+            dataFabricacao = produtoEscolhido.DataFabricacao; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (!DateTime.TryParse(dataFabricacaoStr, out dataFabricacao))
+        {
+            Console.WriteLine("Data de fabricação inválida. Por favor, use o formato YYYY-MM-DD.");
+            return;
+        }
+
+        Console.WriteLine($"Data de Validade atual: {(produtoEscolhido.DataValidade.HasValue ? produtoEscolhido.DataValidade.Value.ToString("yyyy-MM-dd") : "N/A")}");
+        Console.WriteLine("Digite uma nova data de validade (formato YYYY-MM-DD, opcional) ou 'null' para zerar:");
+        var dataValidadeStr = Console.ReadLine();
+        DateTime? dataValidade = null;
+        if (!string.IsNullOrWhiteSpace(dataValidadeStr))
+        {
+            if (dataValidadeStr.ToLower() == "null")
+            {
+                dataValidade = null;
+            }
+            else if (DateTime.TryParse(dataValidadeStr, out DateTime validade))
+            {
+                dataValidade = validade;
+            }
+            else
+            {
+                Console.WriteLine("Data de validade inválida. Por favor, use o formato YYYY-MM-DD.");
+                return;
+            }
+        }
+        else
+        {
+            dataValidade = produtoEscolhido.DataValidade;
+        }
+
+        Console.WriteLine($"Data de Entrega atual: {(produtoEscolhido.DataEntrega.HasValue ? produtoEscolhido.DataEntrega.Value.ToString("yyyy-MM-dd") : "N/A")}");
+        Console.WriteLine("Digite uma nova data de entrega (formato YYYY-MM-DD, opcional) ou 'null' para zerar:");
+        var dataEntregaStr = Console.ReadLine();
+        DateTime? dataEntrega = null;
+        if (!string.IsNullOrWhiteSpace(dataEntregaStr))
+        {
+            if (dataEntregaStr.ToLower() == "null")
+            {
+                dataEntrega = null;
+            }
+            else if (DateTime.TryParse(dataEntregaStr, out DateTime entrega))
+            {
+                dataEntrega = entrega;
+            }
+            else
+            {
+                Console.WriteLine("Data de entrega inválida. Por favor, use o formato YYYY-MM-DD.");
+                return;
+            }
+        }
+        else
+        {
+            dataEntrega = produtoEscolhido.DataEntrega;
+        }
+
+        Console.WriteLine($"Valor de Compra atual: {produtoEscolhido.ValorUnitarioCompra}");
+        Console.WriteLine("Digite um novo valor de compra ou pressione ENTER para manter o atual:");
+        var valorCompraStr = Console.ReadLine();
+        decimal valorCompra;
+        if (string.IsNullOrWhiteSpace(valorCompraStr))
+        {
+            valorCompra = produtoEscolhido.ValorUnitarioCompra; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (!decimal.TryParse(valorCompraStr, out valorCompra))
+        {
+            Console.WriteLine("Valor de compra inválido. Por favor, insira um valor decimal válido.");
+            return;
+        }
+
+        // Verificar se campos obrigatórios ainda são nulos após entrada do usuário
+        if (string.IsNullOrWhiteSpace(codigo) || dataFabricacao == default || valorCompra <= 0)
+        {
+            Console.WriteLine("Os campos obrigatórios (Código, Data de Fabricação e Valor de Compra) devem ser preenchidos.");
+            return;
+        }
+
+        // Atualizar o produto no banco de dados
+        var updateQuery = @"
+            MATCH (p:produto {codigo: $oldCodigo})
+            SET p.codigo = $codigo, p.data_fabricacao = $dataFabricacao, p.data_validade = $dataValidade, p.data_entrega = $dataEntrega, p.valor_compra = $valorCompra
+            RETURN p";
+
+        var updatedProduto = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                oldCodigo = produtoEscolhido.Codigo,
+                codigo,
+                dataFabricacao,
+                dataValidade,
+                dataEntrega,
+                valorCompra
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedProduto["p"].As<INode>();
+        Console.WriteLine($"Produto atualizado com sucesso: Código: {updatedNode["codigo"].As<string>()}, Data de Fabricação: {updatedNode["data_fabricacao"].As<DateTime>().ToString("yyyy-MM-dd")}, Valor de Compra: {updatedNode["valor_compra"].As<decimal>()}");
+    }
+
+
 }

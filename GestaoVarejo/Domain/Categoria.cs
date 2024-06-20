@@ -111,4 +111,68 @@ public class Categoria : IQueryableEntity<Categoria>
         Console.WriteLine($"Categoria '{categoriaEscolhida.Nome}' deletada com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todas as categorias
+        var categorias = GetAll(session);
+        if (categorias.Count == 0)
+        {
+            Console.WriteLine("Não há categorias disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a categoria que deseja atualizar:");
+        for (int i = 0; i < categorias.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {categorias[i]}");
+        }
+
+        Console.WriteLine("Digite o número da categoria para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int categoriaIndex) || categoriaIndex < 1 || categoriaIndex > categorias.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var categoriaEscolhida = categorias[categoriaIndex - 1];
+
+        // Solicitar novos valores
+        Console.WriteLine($"Nome atual: {categoriaEscolhida.Nome}");
+        Console.WriteLine("Digite um novo nome ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var nome = Console.ReadLine();
+        if (string.IsNullOrEmpty(nome))
+        {
+            nome = categoriaEscolhida.Nome; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (nome.Trim().ToLower() == "null")
+        {
+            nome = null; // Permitir nulo se explicitamente indicado
+        }
+        else if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("O nome é obrigatório e não pode ser vazio, exceto se definido explicitamente para 'null'.");
+            return;
+        }
+
+        // Atualizar a categoria
+        var updateQuery = @"
+            MATCH (c:categoria {nome: $nomeAtual})
+            SET c.nome = $nome
+            RETURN c";
+
+        var updatedCategoria = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                nomeAtual = categoriaEscolhida.Nome,
+                nome
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedCategoria["c"].As<INode>();
+        Console.WriteLine($"Categoria atualizada com sucesso: Nome: {updatedNode["nome"].As<string>()}");
+    }
+
+
 }

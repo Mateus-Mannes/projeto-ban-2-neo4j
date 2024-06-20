@@ -198,5 +198,72 @@ public class Compra : IQueryableEntity<Compra>
         Console.WriteLine($"Compra '{compraEscolhida.Nfe}' e todos os produtos relacionados foram deletados com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todas as compras
+        var compras = GetAll(session);
+        if (compras.Count == 0)
+        {
+            Console.WriteLine("Não há compras disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a compra que deseja atualizar:");
+        for (int i = 0; i < compras.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. NFE: {compras[i].Nfe}, Data: {compras[i].Data.ToString("yyyy-MM-dd")}, Fornecedor: {compras[i].Fornecedor.Cnpj}");
+        }
+
+        Console.WriteLine("Digite o número da compra para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int compraIndex) || compraIndex < 1 || compraIndex > compras.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var compraEscolhida = compras[compraIndex - 1];
+
+        // Solicitar novos valores
+        Console.WriteLine($"NFE atual: {compraEscolhida.Nfe}");
+        Console.WriteLine("Digite uma nova NFE ou pressione ENTER para manter o atual:");
+        var nfe = Console.ReadLine();
+        nfe = string.IsNullOrEmpty(nfe) ? compraEscolhida.Nfe : nfe;
+        if (string.IsNullOrWhiteSpace(nfe))
+        {
+            Console.WriteLine("A NFE é obrigatória e não pode ser vazia. Atualização cancelada.");
+            return;
+        }
+
+        Console.WriteLine($"Data atual: {compraEscolhida.Data.ToString("yyyy-MM-dd")}");
+        Console.WriteLine("Digite uma nova data (formato YYYY-MM-DD) ou pressione ENTER para manter o atual:");
+        var dataInput = Console.ReadLine();
+        DateTime data = compraEscolhida.Data;
+        if (!string.IsNullOrEmpty(dataInput) && !DateTime.TryParse(dataInput, out data))
+        {
+            Console.WriteLine("Data inválida. Atualização cancelada.");
+            return;
+        }
+
+        // Atualizar a compra
+        var updateQuery = @"
+            MATCH (c:compra {nfe: $nfeAtual})
+            SET c.nfe = $nfe, c.data = $data
+            RETURN c";
+
+        var updatedCompra = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                nfeAtual = compraEscolhida.Nfe,
+                nfe,
+                data = data.ToString("yyyy-MM-dd")
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedCompra["c"].As<INode>();
+        Console.WriteLine($"Compra atualizada com sucesso: NFE: {updatedNode["nfe"].As<string>()}, Data: {updatedNode["data"].As<DateTime>().ToString("yyyy-MM-dd")}");
+    }
+
 
 }

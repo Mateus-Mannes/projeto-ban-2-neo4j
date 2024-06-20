@@ -240,5 +240,95 @@ public class Venda : IQueryableEntity<Venda>
         Console.WriteLine($"Venda com NFE '{vendaEscolhida.Nfe}' deletada com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todas as vendas disponíveis
+        var vendas = GetAll(session);
+        if (vendas.Count == 0)
+        {
+            Console.WriteLine("Não há vendas disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione a venda que deseja atualizar:");
+        for (int i = 0; i < vendas.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. NFE: {vendas[i].Nfe}, Data: {vendas[i].Data.ToString("yyyy-MM-dd")}, Valor: {vendas[i].Valor}");
+        }
+
+        Console.WriteLine("Digite o número da venda para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int vendaIndex) || vendaIndex < 1 || vendaIndex > vendas.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var vendaEscolhida = vendas[vendaIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"NFE atual: {vendaEscolhida.Nfe}");
+        Console.WriteLine("Digite uma nova NFE ou pressione ENTER para manter a atual:");
+        var nfe = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nfe))
+        {
+            nfe = vendaEscolhida.Nfe; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Data atual: {vendaEscolhida.Data.ToString("yyyy-MM-dd")}");
+        Console.WriteLine("Digite uma nova data (formato YYYY-MM-DD) ou pressione ENTER para manter a atual:");
+        var dataStr = Console.ReadLine();
+        DateTime data;
+        if (string.IsNullOrWhiteSpace(dataStr))
+        {
+            data = vendaEscolhida.Data; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (!DateTime.TryParse(dataStr, out data))
+        {
+            Console.WriteLine("Data inválida. Por favor, use o formato YYYY-MM-DD.");
+            return;
+        }
+
+        Console.WriteLine($"Valor atual: {vendaEscolhida.Valor}");
+        Console.WriteLine("Digite um novo valor ou pressione ENTER para manter o atual:");
+        var valorStr = Console.ReadLine();
+        decimal valor;
+        if (string.IsNullOrWhiteSpace(valorStr))
+        {
+            valor = vendaEscolhida.Valor; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (!decimal.TryParse(valorStr, out valor))
+        {
+            Console.WriteLine("Valor inválido. Por favor, insira um valor decimal válido.");
+            return;
+        }
+
+        // Verificar se campos obrigatórios ainda são nulos após entrada do usuário
+        if (string.IsNullOrWhiteSpace(nfe) || data == default || valor <= 0)
+        {
+            Console.WriteLine("Os campos obrigatórios (NFE, Data e Valor) devem ser preenchidos.");
+            return;
+        }
+
+        // Atualizar a venda no banco de dados
+        var updateQuery = @"
+            MATCH (v:venda {nfe: $oldNfe})
+            SET v.nfe = $nfe, v.data = $data, v.valor = $valor
+            RETURN v";
+
+        var updatedVenda = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                oldNfe = vendaEscolhida.Nfe,
+                nfe,
+                data,
+                valor
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedVenda["v"].As<INode>();
+        Console.WriteLine($"Venda atualizada com sucesso: NFE: {updatedNode["nfe"].As<string>()}, Data: {updatedNode["data"].As<DateTime>().ToString("yyyy-MM-dd")}, Valor: {updatedNode["valor"].As<decimal>()}");
+    }
 
 }

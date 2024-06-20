@@ -23,4 +23,9 @@ public static class ConsoleHelper
     {
         T.Delete(session);
     }
+
+    public static void EditEntity<T>(IAsyncSession session) where T : IQueryableEntity<T>
+    {
+        T.Update(session);
+    }
 }

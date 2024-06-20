@@ -222,5 +222,111 @@ public class Funcionario : IQueryableEntity<Funcionario>
         Console.WriteLine($"Funcionário '{funcionarioEscolhido.Nome} {funcionarioEscolhido.UltimoNome}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os funcionários
+        var funcionarios = GetAll(session);
+        if (funcionarios.Count == 0)
+        {
+            Console.WriteLine("Não há funcionários disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o funcionário que deseja atualizar:");
+        for (int i = 0; i < funcionarios.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {funcionarios[i]}");
+        }
+
+        Console.WriteLine("Digite o número do funcionário para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int funcionarioIndex) || funcionarioIndex < 1 || funcionarioIndex > funcionarios.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var funcionarioEscolhido = funcionarios[funcionarioIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"CPF atual: {funcionarioEscolhido.Cpf}");
+        Console.WriteLine("Digite um novo CPF ou pressione ENTER para manter o atual:");
+        var cpf = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(cpf))
+        {
+            cpf = funcionarioEscolhido.Cpf; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Nome atual: {funcionarioEscolhido.Nome}");
+        Console.WriteLine("Digite um novo nome ou pressione ENTER para manter o atual:");
+        var nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            nome = funcionarioEscolhido.Nome; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Último Nome atual: {funcionarioEscolhido.UltimoNome}");
+        Console.WriteLine("Digite um novo último nome ou pressione ENTER para manter o atual:");
+        var ultimoNome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(ultimoNome))
+        {
+            ultimoNome = funcionarioEscolhido.UltimoNome; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Salário atual: {funcionarioEscolhido.Salario}");
+        Console.WriteLine("Digite um novo salário ou pressione ENTER para manter o atual:");
+        var salarioInput = Console.ReadLine();
+        decimal salario;
+        if (string.IsNullOrWhiteSpace(salarioInput))
+        {
+            salario = funcionarioEscolhido.Salario; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (!decimal.TryParse(salarioInput, out salario) || salario <= 0)
+        {
+            Console.WriteLine("Salário inválido. Por favor, insira um número positivo.");
+            return;
+        }
+
+        Console.WriteLine($"Email atual: {funcionarioEscolhido.Email}");
+        Console.WriteLine("Digite um novo email ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var email = Console.ReadLine();
+        if (string.IsNullOrEmpty(email))
+        {
+            email = funcionarioEscolhido.Email; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (email.Trim().ToLower() == "null")
+        {
+            email = null; // Permitir nulo se explicitamente indicado
+        }
+
+        // Verificar se campos obrigatórios ainda são nulos após entrada do usuário
+        if (string.IsNullOrWhiteSpace(cpf) || string.IsNullOrWhiteSpace(nome) || salario <= 0)
+        {
+            Console.WriteLine("Os campos obrigatórios (CPF, Nome e Salário) devem ser preenchidos.");
+            return;
+        }
+
+        // Atualizar o funcionário no banco de dados
+        var updateQuery = @"
+            MATCH (f:funcionario {cpf: $oldCpf})
+            SET f.cpf = $cpf, f.nome = $nome, f.ultimo_nome = $ultimoNome, f.salario = $salario, f.email = $email
+            RETURN f";
+
+        var updatedFuncionario = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                oldCpf = funcionarioEscolhido.Cpf,
+                cpf,
+                nome,
+                ultimoNome,
+                salario,
+                email
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedFuncionario["f"].As<INode>();
+        Console.WriteLine($"Funcionário atualizado com sucesso: CPF: {updatedNode["cpf"].As<string>()}, Nome: {updatedNode["nome"].As<string>()}, Salário: {updatedNode["salario"].As<decimal>()}");
+    }
 
 }

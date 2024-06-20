@@ -190,5 +190,77 @@ public class CatalogoProduto : IQueryableEntity<CatalogoProduto>
         Console.WriteLine($"Catálogo de produtos '{catalogoEscolhido.Nome}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os catálogos de produtos
+        var catalogoProdutos = GetAll(session);
+        if (catalogoProdutos.Count == 0)
+        {
+            Console.WriteLine("Não há catálogos de produtos para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o catálogo de produtos que deseja atualizar:");
+        for (int i = 0; i < catalogoProdutos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {catalogoProdutos[i]}");
+        }
+
+        Console.WriteLine("Digite o número do catálogo de produtos para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int catalogoIndex) || catalogoIndex < 1 || catalogoIndex > catalogoProdutos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var catalogoEscolhido = catalogoProdutos[catalogoIndex - 1];
+
+        // Solicitar novos valores
+        Console.WriteLine($"Nome atual: {catalogoEscolhido.Nome}");
+        Console.WriteLine("Digite um novo nome ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var nome = Console.ReadLine();
+        nome = nome == "null" ? null : (string.IsNullOrEmpty(nome) ? catalogoEscolhido.Nome : nome);
+        if (string.IsNullOrWhiteSpace(nome) && nome != "null") {
+            Console.WriteLine("O nome é obrigatório e não pode ser vazio.");
+            return;
+        }
+
+        Console.WriteLine($"Descrição atual: {catalogoEscolhido.Descricao}");
+        Console.WriteLine("Digite uma nova descrição ou pressione ENTER para manter a atual (ou digite 'null' para limpar):");
+        var descricao = Console.ReadLine();
+        descricao = descricao == "null" ? null : (string.IsNullOrEmpty(descricao) ? catalogoEscolhido.Descricao : descricao);
+
+        Console.WriteLine($"Preço atual: {catalogoEscolhido.Preco}");
+        Console.WriteLine("Digite um novo preço ou pressione ENTER para manter o atual (ou digite 'null' para definir como null):");
+        var precoStr = Console.ReadLine();
+        decimal? preco = string.IsNullOrEmpty(precoStr) ? catalogoEscolhido.Preco : (precoStr == "null" ? null : decimal.Parse(precoStr));
+
+        if (nome == null || (preco == null && precoStr != "null")) {
+            Console.WriteLine("Campos obrigatórios não podem ser nulos.");
+            return;
+        }
+
+        // Atualizar o catálogo de produtos
+        var updateQuery = @"
+            MATCH (cp:catalogo_produto {nome: $nomeAtual})
+            SET cp.nome = $nome, cp.descricao = $descricao, cp.preco = $preco
+            RETURN cp";
+
+        var updatedProduct = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                nomeAtual = catalogoEscolhido.Nome,
+                nome,
+                descricao,
+                preco
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedProduct["cp"].As<INode>();
+        Console.WriteLine($"Produto atualizado com sucesso: Nome: {updatedNode["nome"].As<string>()}, Descrição: {updatedNode["descricao"].As<string>()}, Preço: {updatedNode["preco"].As<decimal?>()}");
+    }
+
 
 }

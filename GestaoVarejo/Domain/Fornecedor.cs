@@ -195,5 +195,87 @@ public class Fornecedor : IQueryableEntity<Fornecedor>
         Console.WriteLine($"Fornecedor '{fornecedorEscolhido.Cnpj}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os fornecedores
+        var fornecedores = GetAll(session);
+        if (fornecedores.Count == 0)
+        {
+            Console.WriteLine("Não há fornecedores disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o fornecedor que deseja atualizar:");
+        for (int i = 0; i < fornecedores.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {fornecedores[i]}");
+        }
+
+        Console.WriteLine("Digite o número do fornecedor para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int fornecedorIndex) || fornecedorIndex < 1 || fornecedorIndex > fornecedores.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var fornecedorEscolhido = fornecedores[fornecedorIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"CNPJ atual: {fornecedorEscolhido.Cnpj}");
+        Console.WriteLine("Digite um novo CNPJ ou pressione ENTER para manter o atual:");
+        var cnpj = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(cnpj))
+        {
+            cnpj = fornecedorEscolhido.Cnpj; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Email atual: {fornecedorEscolhido.Email}");
+        Console.WriteLine("Digite um novo email ou pressione ENTER para manter o atual:");
+        var email = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            email = fornecedorEscolhido.Email; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Telefone atual: {fornecedorEscolhido.Telefone}");
+        Console.WriteLine("Digite um novo telefone ou pressione ENTER para manter o atual (ou digite 'null' para limpar):");
+        var telefone = Console.ReadLine();
+        if (string.IsNullOrEmpty(telefone))
+        {
+            telefone = fornecedorEscolhido.Telefone; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+        else if (telefone.Trim().ToLower() == "null")
+        {
+            telefone = null; // Permitir nulo se explicitamente indicado
+        }
+
+        // Verificar se campos obrigatórios ainda são nulos após entrada do usuário
+        if (string.IsNullOrWhiteSpace(cnpj) || string.IsNullOrWhiteSpace(email))
+        {
+            Console.WriteLine("Os campos obrigatórios (CNPJ e Email) devem ser preenchidos.");
+            return;
+        }
+
+        // Atualizar o fornecedor no banco de dados
+        var updateQuery = @"
+            MATCH (f:fornecedor {cnpj: $oldCnpj})
+            SET f.cnpj = $cnpj, f.email = $email, f.telefone = $telefone
+            RETURN f";
+
+        var updatedFornecedor = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                oldCnpj = fornecedorEscolhido.Cnpj,
+                cnpj,
+                email,
+                telefone
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedFornecedor["f"].As<INode>();
+        Console.WriteLine($"Fornecedor atualizado com sucesso: CNPJ: {updatedNode["cnpj"].As<string>()}, Email: {updatedNode["email"].As<string>()}");
+    }
 
 }

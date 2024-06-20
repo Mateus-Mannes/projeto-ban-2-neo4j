@@ -182,4 +182,107 @@ public class Endereco  : IQueryableEntity<Endereco>
         Console.WriteLine($"Endereço '{enderecoEscolhido.Rua}, Nº {enderecoEscolhido.Numero}, Bairro: {enderecoEscolhido.Bairro}, Cidade: {enderecoEscolhido.Cidade}, Estado: {enderecoEscolhido.Estado}' deletado com sucesso.");
     }
 
+    public static void Update(IAsyncSession session)
+    {
+        // Listar todos os endereços
+        var enderecos = GetAll(session);
+        if (enderecos.Count == 0)
+        {
+            Console.WriteLine("Não há endereços disponíveis para atualizar.");
+            return;
+        }
+
+        Console.WriteLine("Selecione o endereço que deseja atualizar:");
+        for (int i = 0; i < enderecos.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {enderecos[i]}");
+        }
+
+        Console.WriteLine("Digite o número do endereço para atualizar:");
+        if (!int.TryParse(Console.ReadLine(), out int enderecoIndex) || enderecoIndex < 1 || enderecoIndex > enderecos.Count)
+        {
+            Console.WriteLine("Seleção inválida. Por favor, selecione um número válido da lista.");
+            return;
+        }
+
+        var enderecoEscolhido = enderecos[enderecoIndex - 1];
+
+        // Solicitar novos valores e validar
+        Console.WriteLine($"Cidade atual: {enderecoEscolhido.Cidade}");
+        Console.WriteLine("Digite uma nova cidade ou pressione ENTER para manter a atual:");
+        var cidade = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(cidade))
+        {
+            cidade = enderecoEscolhido.Cidade; // Mantém a atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Bairro atual: {enderecoEscolhido.Bairro}");
+        Console.WriteLine("Digite um novo bairro ou pressione ENTER para manter o atual:");
+        var bairro = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(bairro))
+        {
+            bairro = enderecoEscolhido.Bairro; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Rua atual: {enderecoEscolhido.Rua}");
+        Console.WriteLine("Digite uma nova rua ou pressione ENTER para manter a atual:");
+        var rua = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(rua))
+        {
+            rua = enderecoEscolhido.Rua; // Mantém a atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Número atual: {enderecoEscolhido.Numero}");
+        Console.WriteLine("Digite um novo número ou pressione ENTER para manter o atual:");
+        var numero = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(numero))
+        {
+            numero = enderecoEscolhido.Numero; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        Console.WriteLine($"Estado atual: {enderecoEscolhido.Estado}");
+        Console.WriteLine("Digite um novo estado ou pressione ENTER para manter o atual:");
+        var estado = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(estado))
+        {
+            estado = enderecoEscolhido.Estado; // Mantém o atual se ENTER for pressionado sem alterações
+        }
+
+        // Verificar se campos obrigatórios ainda são nulos após entrada do usuário
+        if (string.IsNullOrWhiteSpace(cidade) || string.IsNullOrWhiteSpace(bairro) ||
+            string.IsNullOrWhiteSpace(rua) || string.IsNullOrWhiteSpace(numero) || string.IsNullOrWhiteSpace(estado))
+        {
+            Console.WriteLine("Todos os campos obrigatórios devem ser preenchidos.");
+            return;
+        }
+
+        // Atualizar o endereço no banco de dados
+        var updateQuery = @"
+            MATCH (e:endereco {cidade: $oldCidade, bairro: $oldBairro, rua: $oldRua, numero: $oldNumero, estado: $oldEstado})
+            SET e.cidade = $cidade, e.bairro = $bairro, e.rua = $rua, e.numero = $numero, e.estado = $estado
+            RETURN e";
+
+        var updatedEndereco = session.ExecuteWriteAsync(async tx =>
+        {
+            var result = await tx.RunAsync(updateQuery, new
+            {
+                oldCidade = enderecoEscolhido.Cidade,
+                oldBairro = enderecoEscolhido.Bairro,
+                oldRua = enderecoEscolhido.Rua,
+                oldNumero = enderecoEscolhido.Numero,
+                oldEstado = enderecoEscolhido.Estado,
+                cidade,
+                bairro,
+                rua,
+                numero,
+                estado
+            });
+            return await result.SingleAsync();
+        }).Result;
+
+        var updatedNode = updatedEndereco["e"].As<INode>();
+        Console.WriteLine($"Endereço atualizado com sucesso: {updatedNode["cidade"].As<string>()}, {updatedNode["bairro"].As<string>()}, {updatedNode["rua"].As<string>()}, {updatedNode["numero"].As<string>()}, {updatedNode["estado"].As<string>()}");
+    }
+
+
 }
