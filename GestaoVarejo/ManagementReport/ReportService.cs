@@ -1,171 +1,175 @@
-using System.Data;
-using Dapper;
+using Neo4j.Driver;
 
 namespace GestaoVarejo;
 
 public class ReportService
 {
-    private readonly IDbConnection _dbContext;
+    private readonly IDriver _driver;
 
-    public ReportService(IDbConnection connection)
+    public ReportService(IDriver driver)
     {
-        _dbContext = connection;
+        _driver = driver;
     }
 
-    public List<(string NomeFuncionario, decimal ValorTotalVendas, string Estado)> GetTopBestSellersInRange(DateTime dataInicial, DateTime dataFinal)
+    public async Task<List<(string NomeFuncionario, decimal ValorTotalVendas, string Estado)>> GetTopBestSellersInRangeAsync(DateTime dataInicial, DateTime dataFinal)
     {
+        List<(string, decimal, string)> result = new();
+
         var query = @"
-            SELECT CONCAT(f.nome, ' ', f.ultimo_nome) AS NomeFuncionario,
-                SUM(v.valor) AS ValorTotalVendas,
-                e.estado AS Estado
-            FROM Venda v
-            INNER JOIN Funcionario f ON v.funcionario_id = f.Id
-            INNER JOIN Endereco e ON f.endereco_id = e.Id
-            WHERE v.data >= @DataInicial
-                AND v.data < @DataFinal
-            GROUP BY NomeFuncionario, Estado
-            ORDER BY SUM(v.valor) DESC
+            MATCH (e:endereco)<-[:TRABALHA_EM]-(f:funcionario)<-[:ATENDIDO_POR]-(v:venda)
+            WHERE date(v.data) >= date($DataInicial) AND date(v.data) <= date($DataFinal)
+            WITH f, SUM(v.valor) AS TotalVendido, e.estado AS Estado
+            ORDER BY TotalVendido DESC
+            RETURN f.nome + ' ' + f.ultimo_nome AS NomeCompleto, TotalVendido, Estado
             LIMIT 3
-            ";
-
-        var results = _dbContext.Query<(string, decimal, string)>(query, new
-        {
-            DataInicial = dataInicial,
-            DataFinal = dataFinal
-        }).AsList();
-
-        var bestSellers = new List<(string, decimal, string)>(results);
-
-        return bestSellers;
-    }
-
-    public List<(string NomeCliente, decimal ValorTotalCompras, string Cidade, string Estado)> GetTopClientsInRange(DateTime dataInicial, DateTime dataFinal)
-    {
-        var query = @"
-            SELECT CONCAT(c.nome, ' ', c.ultimo_nome) AS NomeCliente,
-                SUM(v.valor) AS ValorTotalCompras,
-                e.cidade AS Cidade,
-                e.estado AS Estado
-            FROM Cliente c
-            INNER JOIN Venda v ON c.Id = v.cliente_id
-            INNER JOIN Endereco e ON c.endereco_id = e.Id
-            WHERE v.data >= @DataInicial
-                AND v.data < @DataFinal
-            GROUP BY NomeCliente, Cidade, Estado
-            ORDER BY SUM(v.valor) DESC
-            LIMIT 3;
         ";
 
-        var results = _dbContext.Query<(string, decimal, string, string)>(query, new
+        try
         {
-            DataInicial = dataInicial,
-            DataFinal = dataFinal
-        }).AsList();
-
-        var topClients = new List<(string, decimal, string, string)>(results);
-
-        return topClients;
-    }
-
-    public List<(string Estado, string NomeFuncionario, string NomeCliente, DateTime DataVenda, decimal ValorTotalVenda)> GetSalesByRegionInRange(DateTime dataInicial, DateTime dataFinal)
-    {
-        var query = @"
-            SELECT e.estado AS Estado,
-                CONCAT(f.nome, ' ', f.ultimo_nome) AS NomeFuncionario,
-                CONCAT(c.nome, ' ', c.ultimo_nome) AS NomeCliente,
-                v.data AS DataVenda,
-                v.valor AS ValorTotalVenda
-            FROM Venda v
-            INNER JOIN Funcionario f 
-                ON v.funcionario_id = f.id
-            INNER JOIN Cliente c 
-                ON v.cliente_id = c.id
-            INNER JOIN Endereco e 
-                ON c.endereco_id = e.id
-            WHERE v.data >= @DataInicial
-                AND v.data < @DataFinal
-            ORDER BY e.estado, v.data DESC;
-        ";
-
-        var results = _dbContext.Query<(string Estado, string NomeFuncionario, string NomeCliente, DateTime DataVenda, decimal ValorTotalVenda)>(query, new
-        {
-            DataInicial = dataInicial,
-            DataFinal = dataFinal
-        }).AsList();
-
-        return results;
-    }
-
-    public List<(string NomeProduto, 
-        DateTime DataFabricacao, 
-        DateTime? DataValidade, 
-        DateTime DataCompra,
-        string EmailFornecedor,
-        decimal PrecoProduto,
-        int QuantidadeComprada,
-        decimal ValorTotalCompra,
-        decimal Frete)> 
-    GetProductPurchaseInRange(DateTime dataInicial, DateTime dataFinal)
-    {
-        dataFinal = dataFinal.AddDays(1); // Adiciona 1 dia à data final para incluir o último dia no intervalo
-
-        var query = @"
-            SELECT cp.nome AS NomeProduto,
-                p.data_fabricacao AS DataFabricacao,
-                p.data_validade AS DataValidade,
-                co.data AS DataCompra,
-                f.email AS EmailFornecedor,
-                cp.preco AS PrecoProduto,
-                FLOOR(SUM(p.valor_compra / cp.preco))::INTEGER AS QuantidadeComprada,
-                SUM(p.valor_compra) AS ValorTotalCompra,
-                SUM(p.valor_compra % cp.preco) AS Frete
-            FROM 
-                produto p
-            INNER JOIN catalogo_produto cp 
-                ON p.catalogo_produto_id = cp.id
-            INNER JOIN compra co 
-                ON p.compra_id = co.id
-            INNER JOIN fornecedor f 
-                ON co.fornecedor_id = f.id
-            WHERE co.data >= @DataInicial
-                AND co.data < @DataFinal
-            GROUP BY cp.nome,
-                p.data_fabricacao, 
-                p.data_validade, 
-                co.data,
-                cp.preco, 
-                f.email
-            ORDER BY DataValidade DESC;
-        ";
-
-        var results = _dbContext
-        .Query<(string, 
-        DateTime, 
-        DateTime?,
-        DateTime,
-        string,
-        decimal,
-        int,
-        decimal,
-        decimal)>(query,
-            new
+            using var session = _driver.AsyncSession();
+            result = await session.ExecuteReadAsync(async tx =>
             {
-                DataInicial = dataInicial,
-                DataFinal = dataFinal
-            }).AsList();
+                var cursor = await tx.RunAsync(query, new { DataInicial = dataInicial, DataFinal = dataFinal });
 
-        var purchases = results.Select(r => (
-            NomeProduto: r.Item1,
-            DataFabricacao: r.Item2,
-            DataValidade: r.Item3,
-            DataCompra: r.Item4,
-            EmailFornecedor: r.Item5,
-            PrecoProduto: r.Item6,
-            QuantidadeComprada: r.Item7,
-            ValorTotalCompra: r.Item8,
-            Frete: r.Item9
-        )).ToList();
+                while (await cursor.FetchAsync())
+                {
+                    var nomeCompleto = cursor.Current["NomeCompleto"].As<string>();
+                    var totalVendido = cursor.Current["TotalVendido"].As<decimal>();
+                    var estado = cursor.Current["Estado"].As<string>();
 
-        return purchases;
+                    result.Add((nomeCompleto, totalVendido, estado));
+                }
+
+                return result;
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    public async Task<List<(string NomeCliente, decimal ValorTotalCompras, string Cidade)>> GetTopClientsInRangeAsync(DateTime dataInicial, DateTime dataFinal)
+    {
+        List<(string, decimal, string)> result = new();
+
+        var query = @"
+            MATCH (cl:cliente)-[:FEZ]->(v:venda)
+            WHERE date(v.data) >= date($DataInicial) AND date(v.data) <= date($DataFinal)
+            WITH cl, SUM(v.valor) AS ValorTotalCompras
+            MATCH (cl)-[:RESIDE_EM]->(e:endereco)
+            RETURN cl.nome + ' ' + cl.ultimo_nome AS NomeCliente, ValorTotalCompras, e.cidade AS Cidade
+            ORDER BY ValorTotalCompras DESC
+            LIMIT 3
+        ";
+
+        try
+        {
+            using var session = _driver.AsyncSession();
+            result = await session.ExecuteReadAsync(async tx =>
+            {
+                var cursor = await tx.RunAsync(query, new { DataInicial = dataInicial, DataFinal = dataFinal });
+                
+                while (await cursor.FetchAsync())
+                {
+                    var nomeCliente = cursor.Current["NomeCliente"].As<string>();
+                    var valorTotalCompras = cursor.Current["ValorTotalCompras"].As<decimal>();
+                    var cidade = cursor.Current["Cidade"].As<string>();
+
+                    result.Add((nomeCliente, valorTotalCompras, cidade));
+                }
+                
+                return result;
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    public async Task<List<(string Cidade, string NomeFuncionario, string NomeCliente, DateTime DataVenda, decimal ValorTotalVenda)>> GetSalesByRegionInRangeAsync(DateTime dataInicial, DateTime dataFinal)
+    {
+        List<(string, string, string, DateTime, decimal)> result = new();
+
+        var query = @"
+            MATCH (cl:cliente)-[:FEZ]->(v:venda)-[:ATENDIDO_POR]->(f:funcionario)
+            MATCH (cl)-[:RESIDE_EM]->(e:endereco)
+            WHERE date(v.data) >= date($DataInicial) AND date(v.data) <= date($DataFinal)
+            RETURN e.cidade AS Cidade, f.nome + ' ' + f.ultimo_nome AS NomeFuncionario, cl.nome + ' ' + cl.ultimo_nome AS NomeCliente, v.data AS DataVenda, v.valor AS ValorTotalVenda
+            ORDER BY Cidade, DataVenda DESC
+        ";
+
+        try
+        {
+            using var session = _driver.AsyncSession();
+            result = await session.ExecuteReadAsync(async tx =>
+            {
+                var cursor = await tx.RunAsync(query, new { DataInicial = dataInicial, DataFinal = dataFinal });
+                
+                while (await cursor.FetchAsync())
+                {
+                    var cidade = cursor.Current["Cidade"].As<string>();
+                    var nomeFuncionario = cursor.Current["NomeFuncionario"].As<string>();
+                    var nomeCliente = cursor.Current["NomeCliente"].As<string>();
+                    var dataVenda = cursor.Current["DataVenda"].As<DateTime>();
+                    var valorTotalVenda = cursor.Current["ValorTotalVenda"].As<decimal>();
+
+                    result.Add((cidade, nomeFuncionario, nomeCliente, dataVenda, valorTotalVenda));
+                }
+                
+                return result;
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    public async Task<List<(string NomeProduto, DateTime DataFabricacao, DateTime? DataValidade, DateTime DataCompra, string EmailFornecedor, decimal PrecoProduto, int QuantidadeComprada, decimal ValorTotalCompra, decimal Frete)>> GetProductPurchaseInRangeAsync(DateTime dataInicial, DateTime dataFinal)
+    {
+        List<(string, DateTime, DateTime?, DateTime, string, decimal, int, decimal, decimal)> result = new();
+
+        var query = @"
+            MATCH (p:produto)-[:CATEGORIZADO_COM]->(cp:catalogo_produto), (p)-[:PARTE_DE]->(c:compra)-[:FORNECE]-(f:fornecedor)
+            WHERE date(c.data) >= date($DataInicial) AND date(c.data) <= date($DataFinal)
+            RETURN cp.nome AS NomeProduto, p.data_fabricacao AS DataFabricacao, p.data_validade AS DataValidade, c.data AS DataCompra, f.email AS EmailFornecedor,
+                cp.preco AS PrecoProduto, SUM(p.valor_compra) AS ValorTotalCompra, toInteger(SUM(p.valor_compra / cp.preco)) AS QuantidadeComprada, SUM(p.valor_compra % cp.preco) AS Frete
+            ORDER BY DataValidade DESC
+
+        ";
+
+        try
+        {
+            using var session = _driver.AsyncSession();
+            result = await session.ExecuteReadAsync(async tx =>
+            {
+                var cursor = await tx.RunAsync(query, new { DataInicial = dataInicial, DataFinal = dataFinal });
+                return await cursor.ToListAsync(record =>
+                    (record["NomeProduto"].As<string>(),
+                    record["DataFabricacao"].As<DateTime>(),
+                    record["DataValidade"].As<DateTime?>(),
+                    record["DataCompra"].As<DateTime>(),
+                    record["EmailFornecedor"].As<string>(),
+                    record["PrecoProduto"].As<decimal>(),
+                    record["QuantidadeComprada"].As<int>(),
+                    record["ValorTotalCompra"].As<decimal>(),
+                    record["Frete"].As<decimal>())
+                );
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return result;
     }
 }
